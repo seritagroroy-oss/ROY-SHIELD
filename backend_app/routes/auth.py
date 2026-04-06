@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Depends, Header, HTTPException
+from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
 from backend_app.models import LoginRequest, RegisterRequest
+from backend_app.services.rate_limit import enforce_rate_limit
 from backend_app.services.storage import (
     authenticate_user,
     create_session,
@@ -24,7 +25,8 @@ def resolve_token_user(authorization: str | None = Header(default=None)) -> dict
 
 
 @router.post("/auth/register")
-def register(req: RegisterRequest):
+def register(req: RegisterRequest, request: Request):
+    enforce_rate_limit(request, "auth")
     user = create_user(req.name, req.email, req.password)
     if user is None:
         raise HTTPException(status_code=409, detail="email_already_exists")
@@ -33,7 +35,8 @@ def register(req: RegisterRequest):
 
 
 @router.post("/auth/login")
-def login(req: LoginRequest):
+def login(req: LoginRequest, request: Request):
+    enforce_rate_limit(request, "auth")
     user = authenticate_user(req.email, req.password)
     if user is None:
         raise HTTPException(status_code=401, detail="invalid_credentials")

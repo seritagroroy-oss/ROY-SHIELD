@@ -642,10 +642,17 @@ function renderAnalyticsDetail(stats) {
   dominantLevel.textContent = levels[0]?.count ? `${levels[0].label}` : "Aucune";
 
   const insights = [];
+  const security = stats.security || {};
+  if (security.pressure_score != null) {
+    insights.push(["Pression securite", `Score de pression ${security.pressure_score}/100 · posture ${security.posture || "stable"}.`]);
+  }
   if ((stats.danger_scans ?? 0) > 0) insights.push(["Pression forte", `${stats.danger_scans} lien(s) dangereux sur la période filtrée.`]);
   if ((stats.average_score ?? 0) >= 50) insights.push(["Risque moyen élevé", `Le score moyen atteint ${stats.average_score}/100.`]);
   if ((stats.reports?.total_reports ?? 0) > 0) insights.push(["Communauté active", `${stats.reports.total_reports} signalement(s) ont alimenté la veille.`]);
   if ((stats.source_totals?.backend_enriched ?? 0) > 0) insights.push(["Analyse profonde", `${stats.source_totals.backend_enriched} scan(s) ont été enrichis par le backend.`]);
+  (security.alerts || []).forEach(alert => {
+    insights.push([alert.title || "Alerte", alert.detail || "Une anomalie a ete detectee."]);
+  });
 
   intelList.innerHTML = insights.length
     ? insights.map(([title, detail]) => `<div class="intel-item"><strong>${title}</strong><span>${detail}</span></div>`).join("")

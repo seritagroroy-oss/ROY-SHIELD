@@ -1,8 +1,10 @@
+from fastapi import HTTPException
 from fastapi.testclient import TestClient
 
 import backend
 from backend_app.routes import auth as auth_route
 from backend_app.routes import reports as reports_route
+from backend_app.routes import scan as scan_route
 from backend_app.services import scan_service, storage
 from backend_app.routes import stats as stats_route
 
@@ -80,8 +82,21 @@ def test_stats_and_recent_scans_endpoints(monkeypatch):
         },
     ]
 
-    monkeypatch.setattr(storage, "read_scan_events", lambda limit=None: sample_events[-limit:] if limit else sample_events)
-    monkeypatch.setattr(stats_route, "read_scan_events", lambda limit=None: sample_events[-limit:] if limit else sample_events)
+    monkeypatch.setattr(
+        storage,
+        "read_scan_events",
+        lambda limit=None, days=None, level=None, user_id=None: sample_events[-limit:] if limit else sample_events,
+    )
+    monkeypatch.setattr(
+        stats_route,
+        "read_scan_events",
+        lambda limit=None, days=None, level=None, user_id=None: sample_events[-limit:] if limit else sample_events,
+    )
+    monkeypatch.setattr(
+        stats_route,
+        "read_reports",
+        lambda limit=None, days=None, report_type=None, user_id=None: [],
+    )
 
     stats_response = client.get("/stats")
     recent_response = client.get("/recent-scans?limit=1")
@@ -92,6 +107,7 @@ def test_stats_and_recent_scans_endpoints(monkeypatch):
     assert stats_payload["danger_scans"] == 1
     assert stats_payload["safe_scans"] == 1
     assert "reports" in stats_payload
+    assert "security" in stats_payload
 
     assert recent_response.status_code == 200
     recent_payload = recent_response.json()
@@ -122,10 +138,26 @@ def test_submit_report_and_report_endpoints(monkeypatch):
             **payload,
         },
     )
-    monkeypatch.setattr(storage, "read_reports", lambda limit=None: sample_reports[:limit] if limit else sample_reports)
-    monkeypatch.setattr(reports_route, "read_reports", lambda limit=None: sample_reports[:limit] if limit else sample_reports)
-    monkeypatch.setattr(stats_route, "read_reports", lambda limit=None: sample_reports[:limit] if limit else sample_reports)
-    monkeypatch.setattr(stats_route, "read_scan_events", lambda limit=None: [])
+    monkeypatch.setattr(
+        storage,
+        "read_reports",
+        lambda limit=None, days=None, report_type=None, user_id=None: sample_reports[:limit] if limit else sample_reports,
+    )
+    monkeypatch.setattr(
+        reports_route,
+        "read_reports",
+        lambda limit=None, days=None, report_type=None, user_id=None: sample_reports[:limit] if limit else sample_reports,
+    )
+    monkeypatch.setattr(
+        stats_route,
+        "read_reports",
+        lambda limit=None, days=None, report_type=None, user_id=None: sample_reports[:limit] if limit else sample_reports,
+    )
+    monkeypatch.setattr(
+        stats_route,
+        "read_scan_events",
+        lambda limit=None, days=None, level=None, user_id=None: [],
+    )
 
     submit_response = client.post(
         "/reports",
@@ -211,3 +243,96 @@ def test_auth_register_login_and_profile(monkeypatch):
     assert scans_response.status_code == 200
     assert scans_response.json()["count"] == 1
     assert scans_response.json()["items"][0]["normalized_url"] == "https://github.com"
+
+
+def test_invalid_scan_payload_returns_validation_error():
+    response = client.post("/scan", json={"url": "bad url with space"})
+
+    assert response.status_code == 422
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["error"] == "validation_failed"
+
+
+def test_scan_rate_limit_returns_structured_error(monkeypatch):
+    def fake_rate_limit(request, bucket):
+        raise HTTPException(status_code=429, detail={"code": "rate_limit_exceeded", "bucket": bucket})
+
+    monkeypatch.setattr(scan_route, "enforce_rate_limit", fake_rate_limit)
+
+    response = client.post("/scan", json={"url": "https://github.com"})
+
+    assert response.status_code == 429
+    payload = response.json()
+    assert payload["ok"] is False
+    assert payload["error"] == "request_failed"
+    assert payload["details"]["code"] == "rate_limit_exceeded"
+
+
+def test_stats_expose_security_pressure(monkeypatch):
+    sample_events = [
+        {
+            "timestamp": "2026-04-06T18:00:00+00:00",
+            "raw_url": "http://bad.test/1",
+            "normalized_url": "http://bad.test/1",
+            "hostname": "bad.test",
+            "score": 92,
+            "level": "danger",
+            "verdict": "Arnaque probable",
+            "content_analyzed": True,
+            "signal_count": 5,
+        },
+        {
+            "timestamp": "2026-04-06T18:05:00+00:00",
+            "raw_url": "http://bad.test/2",
+            "normalized_url": "http://bad.test/2",
+            "hostname": "bad.test",
+            "score": 71,
+            "level": "danger",
+            "verdict": "Arnaque probable",
+            "content_analyzed": True,
+            "signal_count": 4,
+        },
+        {
+            "timestamp": "2026-04-06T18:10:00+00:00",
+            "raw_url": "https://warn.test",
+            "normalized_url": "https://warn.test",
+            "hostname": "warn.test",
+            "score": 48,
+            "level": "warn",
+            "verdict": "Site suspect",
+            "content_analyzed": True,
+            "signal_count": 3,
+        },
+    ]
+    sample_reports = [
+        {
+            "id": 3,
+            "timestamp": "2026-04-06T19:00:00+00:00",
+            "url": "https://fake-login.test",
+            "report_type": "phishing",
+            "comment": "Campagne active",
+            "score": 95,
+            "verdict": "Arnaque probable",
+            "level": "danger",
+        }
+    ]
+
+    monkeypatch.setattr(
+        stats_route,
+        "read_scan_events",
+        lambda limit=None, days=None, level=None, user_id=None: sample_events,
+    )
+    monkeypatch.setattr(
+        stats_route,
+        "read_reports",
+        lambda limit=None, days=None, report_type=None, user_id=None: sample_reports,
+    )
+
+    response = client.get("/stats?days=30")
+
+    assert response.status_code == 200
+    payload = response.json()
+    assert payload["security"]["pressure_score"] > 0
+    assert payload["security"]["posture"] in {"elevated", "critical"}
+    assert len(payload["security"]["alerts"]) >= 1

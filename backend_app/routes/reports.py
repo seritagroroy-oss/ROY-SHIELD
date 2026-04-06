@@ -1,14 +1,16 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 
 from backend_app.models import ReportRequest
 from backend_app.routes.auth import resolve_token_user
+from backend_app.services.rate_limit import enforce_rate_limit
 from backend_app.services.storage import create_report, read_reports, summarize_reports
 
 router = APIRouter()
 
 
 @router.post("/reports")
-def submit_report(req: ReportRequest, user: dict | None = Depends(resolve_token_user)):
+def submit_report(req: ReportRequest, request: Request, user: dict | None = Depends(resolve_token_user)):
+    enforce_rate_limit(request, "reports")
     payload = req.model_dump()
     payload["user_id"] = user["id"] if user else None
     report = create_report(payload)

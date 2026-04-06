@@ -15,6 +15,8 @@ ROY SHIELD is a phishing and scam detection platform focused on fast URL analysi
 - Live dashboard for recent scans, risk levels, and community reports
 - Filterable analytics dashboard with 7/30/90-day views
 - Analyst workspace with lightweight authentication and personal scan history
+- Rate limiting and structured validation on critical API routes
+- Security posture scoring and anomaly alerts in backend analytics
 - Local history and export-friendly reporting flow
 
 ## Stack
@@ -59,6 +61,10 @@ Available variables:
 - `ROY_SHIELD_ALLOWED_ORIGINS`
 - `ROY_SHIELD_FETCH_TIMEOUT`
 - `ROY_SHIELD_SSL_TIMEOUT`
+- `ROY_SHIELD_RATE_LIMIT_WINDOW_SECONDS`
+- `ROY_SHIELD_RATE_LIMIT_SCAN`
+- `ROY_SHIELD_RATE_LIMIT_REPORTS`
+- `ROY_SHIELD_RATE_LIMIT_AUTH`
 
 Run the API locally:
 
@@ -117,6 +123,8 @@ GitHub Actions runs the same backend test suite on pushes and pull requests to `
 - [x] Community reporting backend
 - [x] Analyst workspace authentication
 - [x] Filterable analytics views
+- [x] API rate limiting and stricter validation
+- [x] Security posture and anomaly alerts
 - [ ] Public demo assets
 - [ ] Shareable scan report pages
 - [ ] Alerting and notification channels
