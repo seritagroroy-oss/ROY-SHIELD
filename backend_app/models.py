@@ -58,6 +58,45 @@ class ReportRequest(BaseModel):
         return candidate
 
 
+class ReportModerationRequest(BaseModel):
+    status: str
+    note: str = ""
+
+    @field_validator("status")
+    @classmethod
+    def validate_status(cls, value: str) -> str:
+        candidate = value.strip().lower()
+        if candidate not in {"pending", "reviewed", "confirmed", "dismissed"}:
+            raise ValueError("status_invalid")
+        return candidate
+
+    @field_validator("note")
+    @classmethod
+    def validate_note(cls, value: str) -> str:
+        return value.strip()[:500]
+
+
+class ShareReportRequest(BaseModel):
+    url: str
+    verdict: str
+    level: str
+    score: int
+    signals: list[dict] = []
+
+    @field_validator("url")
+    @classmethod
+    def validate_url(cls, value: str) -> str:
+        return ScanRequest.validate_url(value)
+
+    @field_validator("level")
+    @classmethod
+    def validate_level(cls, value: str) -> str:
+        candidate = value.strip().lower()
+        if candidate not in {"safe", "warn", "danger"}:
+            raise ValueError("level_invalid")
+        return candidate
+
+
 class RegisterRequest(BaseModel):
     name: str
     email: str

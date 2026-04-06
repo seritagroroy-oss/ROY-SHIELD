@@ -17,6 +17,9 @@ ROY SHIELD is a phishing and scam detection platform focused on fast URL analysi
 - Analyst workspace with lightweight authentication and personal scan history
 - Rate limiting and structured validation on critical API routes
 - Security posture scoring and anomaly alerts in backend analytics
+- Shareable read-only report links for investigations
+- Admin moderation endpoints for community reports
+- Optional webhook alerts for dangerous scans and moderation events
 - Local history and export-friendly reporting flow
 
 ## Stack
@@ -65,6 +68,8 @@ Available variables:
 - `ROY_SHIELD_RATE_LIMIT_SCAN`
 - `ROY_SHIELD_RATE_LIMIT_REPORTS`
 - `ROY_SHIELD_RATE_LIMIT_AUTH`
+- `ROY_SHIELD_WEBHOOK_URL`
+- `ROY_SHIELD_ADMIN_TOKEN`
 
 Run the API locally:
 
@@ -95,11 +100,15 @@ Then open [index.html](/e:/SITE/index.html) in your browser.
 - `POST /reports`
 - `GET /reports/recent`
 - `GET /reports/stats`
+- `POST /reports/share`
+- `GET /shared-reports/{token}`
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
 - `GET /me`
 - `GET /me/scans`
+- `GET /admin/reports`
+- `POST /admin/reports/{report_id}/moderate`
 
 ## Testing
 
@@ -125,6 +134,9 @@ GitHub Actions runs the same backend test suite on pushes and pull requests to `
 - [x] Filterable analytics views
 - [x] API rate limiting and stricter validation
 - [x] Security posture and anomaly alerts
+- [x] Shareable read-only reports
+- [x] Admin moderation workflow
+- [x] Webhook event notifications
 - [ ] Public demo assets
 - [ ] Shareable scan report pages
 - [ ] Alerting and notification channels

@@ -727,6 +727,10 @@ main, header, footer, section {
   grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
 }
 
+.admin-grid {
+  margin-top: 16px;
+}
+
 .workspace-card-header h3 {
   font-size: 1rem;
   margin-bottom: 6px;

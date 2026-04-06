@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Header, HTTPException, Request
 
+from backend_app.config import ADMIN_TOKEN
 from backend_app.models import LoginRequest, RegisterRequest
 from backend_app.services.rate_limit import enforce_rate_limit
 from backend_app.services.storage import (
@@ -22,6 +23,12 @@ def resolve_token_user(authorization: str | None = Header(default=None)) -> dict
     if not token:
         return None
     return get_user_by_token(token)
+
+
+def require_admin(x_admin_token: str | None = Header(default=None)) -> bool:
+    if not ADMIN_TOKEN or x_admin_token != ADMIN_TOKEN:
+        raise HTTPException(status_code=401, detail="admin_unauthorized")
+    return True
 
 
 @router.post("/auth/register")

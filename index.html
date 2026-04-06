@@ -371,6 +371,36 @@
           </div>
         </div>
       </div>
+      <div class="workspace-grid admin-grid">
+        <div class="workspace-card">
+          <div class="workspace-card-header">
+            <h3>Partage de rapport</h3>
+            <p>Générez un lien public de lecture seule pour un scan courant.</p>
+          </div>
+          <div class="workspace-profile-actions">
+            <button class="workspace-primary-btn" id="shareCurrentReportBtn">Partager le scan courant</button>
+          </div>
+          <div class="workspace-history" id="sharedReportResult">
+            <p class="analytics-empty">Le lien partagé apparaîtra ici après génération.</p>
+          </div>
+        </div>
+        <div class="workspace-card">
+          <div class="workspace-card-header">
+            <h3>Modération admin</h3>
+            <p>Chargez et modérez les signalements avec un token administrateur.</p>
+          </div>
+          <div class="modal-field">
+            <label>Admin token</label>
+            <input type="password" id="adminTokenInput" placeholder="Token admin ROY SHIELD" autocomplete="off" />
+          </div>
+          <div class="workspace-profile-actions">
+            <button class="workspace-secondary-btn" id="loadAdminReportsBtn">Charger la file</button>
+          </div>
+          <div class="workspace-history" id="adminReportsList">
+            <p class="analytics-empty">La file de modération apparaîtra ici.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Section résultat unique -->

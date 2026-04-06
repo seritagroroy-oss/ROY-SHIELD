@@ -22,6 +22,7 @@ from backend_app.constants import (
     TRUSTED_DOMAINS,
     URL_SHORTENERS,
 )
+from backend_app.services.notification_service import dispatch_webhook
 from backend_app.services.storage import append_scan_event
 
 
@@ -515,4 +516,14 @@ async def analyze_scan(raw_url: str, user_id: int | None = None) -> dict:
 
     result = _apply_final_verdict(result)
     append_scan_event(_build_scan_event(result, raw_url, hostname) | {"user_id": user_id})
+    if result["level"] == "danger":
+        dispatch_webhook(
+            "dangerous_scan_detected",
+            {
+                "url": result["url"],
+                "score": result["score"],
+                "verdict": result["verdict"],
+                "user_id": user_id,
+            },
+        )
     return result

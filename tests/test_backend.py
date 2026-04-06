@@ -189,6 +189,50 @@ def test_submit_report_and_report_endpoints(monkeypatch):
     assert global_stats_response.json()["reports"]["total_reports"] == 1
 
 
+def test_share_report_and_shared_report_endpoint(monkeypatch):
+    monkeypatch.setattr(
+        reports_route,
+        "create_shared_report",
+        lambda payload: {
+            "id": 9,
+            "token": "share-token",
+            "created_at": "2026-04-06T20:00:00+00:00",
+            **payload,
+        },
+    )
+    monkeypatch.setattr(
+        reports_route,
+        "get_shared_report",
+        lambda token: {
+            "id": 9,
+            "token": token,
+            "created_at": "2026-04-06T20:00:00+00:00",
+            "url": "https://fake-login.test",
+            "verdict": "Arnaque probable",
+            "level": "danger",
+            "score": 91,
+            "signals": [{"label": "Suspicious", "detail": "Detected"}],
+        },
+    )
+
+    share_response = client.post(
+        "/reports/share",
+        json={
+            "url": "https://fake-login.test",
+            "verdict": "Arnaque probable",
+            "level": "danger",
+            "score": 91,
+            "signals": [{"label": "Suspicious", "detail": "Detected"}],
+        },
+    )
+    fetch_response = client.get("/shared-reports/share-token")
+
+    assert share_response.status_code == 200
+    assert share_response.json()["share"]["token"] == "share-token"
+    assert fetch_response.status_code == 200
+    assert fetch_response.json()["report"]["level"] == "danger"
+
+
 def test_auth_register_login_and_profile(monkeypatch):
     sample_user = {
         "id": 10,
@@ -243,6 +287,56 @@ def test_auth_register_login_and_profile(monkeypatch):
     assert scans_response.status_code == 200
     assert scans_response.json()["count"] == 1
     assert scans_response.json()["items"][0]["normalized_url"] == "https://github.com"
+
+
+def test_admin_report_moderation(monkeypatch):
+    monkeypatch.setattr(auth_route, "ADMIN_TOKEN", "secret-admin")
+    monkeypatch.setattr(
+        reports_route,
+        "read_reports",
+        lambda limit=None, days=None, report_type=None, user_id=None: [
+            {
+                "id": 3,
+                "timestamp": "2026-04-06T20:10:00+00:00",
+                "url": "https://fake-login.test",
+                "report_type": "phishing",
+                "comment": "Pending",
+                "score": 90,
+                "verdict": "Arnaque probable",
+                "level": "danger",
+                "status": "pending",
+                "moderation_note": "",
+                "moderated_at": None,
+            }
+        ],
+    )
+    monkeypatch.setattr(
+        reports_route,
+        "moderate_report",
+        lambda report_id, status, note="": {
+            "id": report_id,
+            "status": status,
+            "moderation_note": note,
+            "url": "https://fake-login.test",
+            "report_type": "phishing",
+            "comment": "Pending",
+            "score": 90,
+            "verdict": "Arnaque probable",
+            "level": "danger",
+        },
+    )
+
+    list_response = client.get("/admin/reports", headers={"X-Admin-Token": "secret-admin"})
+    moderate_response = client.post(
+        "/admin/reports/3/moderate",
+        headers={"X-Admin-Token": "secret-admin"},
+        json={"status": "confirmed", "note": "Valide"},
+    )
+
+    assert list_response.status_code == 200
+    assert list_response.json()["count"] == 1
+    assert moderate_response.status_code == 200
+    assert moderate_response.json()["report"]["status"] == "confirmed"
 
 
 def test_invalid_scan_payload_returns_validation_error():

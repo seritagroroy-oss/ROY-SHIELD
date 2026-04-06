@@ -10,6 +10,7 @@ let currentResult = null;
 let currentRawUrl = "";
 let authMode = "login";
 let currentUser = null;
+const ADMIN_TOKEN_KEY = "royshield_admin_token";
 
 // URL du backend Python — à remplacer par l'URL Render après déploiement
 const BACKEND_URL =
@@ -69,6 +70,8 @@ document.getElementById("workspaceBtn").addEventListener("click", () => {
 document.getElementById("openAuthModalBtn").addEventListener("click", openAuthModal);
 document.getElementById("workspaceRefreshBtn").addEventListener("click", refreshWorkspace);
 document.getElementById("workspaceLogoutBtn").addEventListener("click", logoutWorkspace);
+document.getElementById("shareCurrentReportBtn").addEventListener("click", shareCurrentReport);
+document.getElementById("loadAdminReportsBtn").addEventListener("click", loadAdminReports);
 ["dashboardDaysFilter", "dashboardLevelFilter", "dashboardReportTypeFilter"].forEach(id => {
   const element = document.getElementById(id);
   if (element) element.addEventListener("change", refreshLiveDashboard);
@@ -450,6 +453,10 @@ function getDashboardFilters() {
     level: document.getElementById("dashboardLevelFilter")?.value || "",
     reportType: document.getElementById("dashboardReportTypeFilter")?.value || ""
   };
+}
+
+function getAdminToken() {
+  return localStorage.getItem(ADMIN_TOKEN_KEY) || "";
 }
 
 function buildQuery(params) {
@@ -963,6 +970,102 @@ async function submitReport() {
     showToast("Signalement enregistré. Merci pour votre contribution.", "safe");
   } catch {
     showToast("Impossible d'envoyer le signalement au backend.", "warn");
+  }
+}
+
+async function shareCurrentReport() {
+  const target = document.getElementById("sharedReportResult");
+  if (!currentResult) {
+    showToast("Aucun scan courant a partager.", "warn");
+    return;
+  }
+  try {
+    const response = await fetch(BACKEND_URL + "/reports/share", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        url: currentResult.url,
+        verdict: currentResult.verdict,
+        level: currentResult.level,
+        score: currentResult.score,
+        signals: currentResult.signals || []
+      })
+    });
+    if (!response.ok) throw new Error("share_failed");
+    const data = await response.json();
+    const shareUrl = `${BACKEND_URL}/shared-reports/${data.share.token}`;
+    target.innerHTML = `
+      <div class="workspace-history-item">
+        <strong>Lien partageable cree</strong>
+        <span>${shareUrl}</span>
+        <span>Lecture seule · niveau ${data.share.level}</span>
+      </div>
+    `;
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(shareUrl).catch(() => {});
+    }
+    showToast("Lien partageable cree et copie si possible.", "safe");
+  } catch {
+    showToast("Impossible de generer le lien partageable.", "warn");
+  }
+}
+
+async function loadAdminReports() {
+  const input = document.getElementById("adminTokenInput");
+  const list = document.getElementById("adminReportsList");
+  const token = input.value.trim();
+  if (!token) {
+    showToast("Entrez un token admin.", "warn");
+    return;
+  }
+  localStorage.setItem(ADMIN_TOKEN_KEY, token);
+  try {
+    const response = await fetch(BACKEND_URL + "/admin/reports?status=pending&days=90", {
+      headers: { "X-Admin-Token": token }
+    });
+    if (!response.ok) throw new Error("admin_failed");
+    const data = await response.json();
+    if (!data.items?.length) {
+      list.innerHTML = '<p class="analytics-empty">Aucun signalement en attente.</p>';
+      return;
+    }
+    list.innerHTML = data.items.map(item => `
+      <div class="workspace-history-item">
+        <strong>${item.report_type} · ${item.url}</strong>
+        <span>${item.comment || "Sans commentaire"}</span>
+        <span>Etat: ${item.status}</span>
+        <div class="workspace-profile-actions">
+          <button class="workspace-secondary-btn" onclick="moderateReport(${item.id}, 'confirmed')">Confirmer</button>
+          <button class="workspace-danger-btn" onclick="moderateReport(${item.id}, 'dismissed')">Rejeter</button>
+        </div>
+      </div>
+    `).join("");
+  } catch {
+    showToast("Impossible de charger la moderation admin.", "warn");
+  }
+}
+
+async function moderateReport(reportId, status) {
+  const token = getAdminToken() || document.getElementById("adminTokenInput").value.trim();
+  if (!token) {
+    showToast("Token admin requis.", "warn");
+    return;
+  }
+  try {
+    const response = await fetch(BACKEND_URL + `/admin/reports/${reportId}/moderate`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Admin-Token": token
+      },
+      body: JSON.stringify({ status, note: status === "confirmed" ? "Valide par moderation." : "Rejete par moderation." })
+    });
+    if (!response.ok) throw new Error("moderation_failed");
+    showToast("Signalement modere.", "safe");
+    loadAdminReports();
+    refreshLiveDashboard();
+  } catch {
+    showToast("Impossible de moderer ce signalement.", "warn");
   }
 }
 
