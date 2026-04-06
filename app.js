@@ -249,7 +249,7 @@ function buildScanReport(result) {
     const age = result.whois.age_days != null ? result.whois.age_days + " jours" : "inconnu";
     const ageColor = result.whois.age_days < 30 ? "var(--danger)" : result.whois.age_days < 180 ? "var(--warn)" : "var(--safe)";
     whoisEl.innerHTML = `
-      <div class="sr-meta-item"><span class="sr-meta-label">Âge du domaine</span><span class="sr-meta-val" style="color:${ageColor}">${age}</span></div>
+      <div class="sr-meta-item"><span class="sr-meta-label">Age du domaine</span><span class="sr-meta-val" style="color:${ageColor}">${age}</span></div>
       <div class="sr-meta-item"><span class="sr-meta-label">Registrar</span><span class="sr-meta-val">${result.whois.registrar || "Inconnu"}</span></div>
       <div class="sr-meta-item"><span class="sr-meta-label">Créé le</span><span class="sr-meta-val">${result.whois.creation || "?"}</span></div>
     `;
