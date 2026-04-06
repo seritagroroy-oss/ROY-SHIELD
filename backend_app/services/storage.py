@@ -2,6 +2,9 @@ import sqlite3
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+import hashlib
+import hmac
+import secrets
 
 
 BASE_DIR = Path(__file__).resolve().parents[2]
@@ -27,6 +30,7 @@ def init_storage() -> None:
             CREATE TABLE IF NOT EXISTS scan_events (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
+                user_id INTEGER,
                 raw_url TEXT NOT NULL,
                 normalized_url TEXT NOT NULL,
                 hostname TEXT NOT NULL,
@@ -43,6 +47,7 @@ def init_storage() -> None:
             CREATE TABLE IF NOT EXISTS reports (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 timestamp TEXT NOT NULL,
+                user_id INTEGER,
                 url TEXT NOT NULL,
                 report_type TEXT NOT NULL,
                 comment TEXT NOT NULL,
@@ -52,6 +57,29 @@ def init_storage() -> None:
             )
             """
         )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                created_at TEXT NOT NULL,
+                name TEXT NOT NULL,
+                email TEXT NOT NULL UNIQUE,
+                password_hash TEXT NOT NULL
+            )
+            """
+        )
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS sessions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                token TEXT NOT NULL UNIQUE,
+                created_at TEXT NOT NULL
+            )
+            """
+        )
+        _ensure_column(conn, "scan_events", "user_id", "INTEGER")
+        _ensure_column(conn, "reports", "user_id", "INTEGER")
         conn.commit()
 
 
@@ -60,12 +88,13 @@ def append_scan_event(event: dict) -> None:
         conn.execute(
             """
             INSERT INTO scan_events (
-                timestamp, raw_url, normalized_url, hostname, score, level,
+                timestamp, user_id, raw_url, normalized_url, hostname, score, level,
                 verdict, content_analyzed, signal_count
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 event["timestamp"],
+                event.get("user_id"),
                 event["raw_url"],
                 event["normalized_url"],
                 event["hostname"],
@@ -79,28 +108,49 @@ def append_scan_event(event: dict) -> None:
         conn.commit()
 
 
-def read_scan_events(limit: int | None = None) -> list[dict]:
+def read_scan_events(
+    limit: int | None = None,
+    *,
+    days: int | None = None,
+    level: str | None = None,
+    user_id: int | None = None,
+) -> list[dict]:
+    filters = []
+    params: list = []
+    if days is not None and days > 0:
+        since = (datetime.now(timezone.utc) - timedelta(days=days - 1)).date().isoformat()
+        filters.append("timestamp >= ?")
+        params.append(f"{since}T00:00:00+00:00")
+    if level:
+        filters.append("level = ?")
+        params.append(level)
+    if user_id is not None:
+        filters.append("user_id = ?")
+        params.append(user_id)
+
+    where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
     query = """
-        SELECT timestamp, raw_url, normalized_url, hostname, score, level,
+        SELECT timestamp, user_id, raw_url, normalized_url, hostname, score, level,
                verdict, content_analyzed, signal_count
         FROM scan_events
+        {where_clause}
         ORDER BY id ASC
-    """
-    params: tuple = ()
+    """.format(where_clause=where_clause)
     if limit is not None:
         query = """
             SELECT * FROM (
-                SELECT timestamp, raw_url, normalized_url, hostname, score, level,
+                SELECT timestamp, user_id, raw_url, normalized_url, hostname, score, level,
                        verdict, content_analyzed, signal_count
                 FROM scan_events
+                {where_clause}
                 ORDER BY id DESC
                 LIMIT ?
             ) ORDER BY timestamp ASC
-        """
-        params = (limit,)
+        """.format(where_clause=where_clause)
+        params.append(limit)
 
     with closing(get_connection()) as conn:
-        rows = conn.execute(query, params).fetchall()
+        rows = conn.execute(query, tuple(params)).fetchall()
     return [_row_to_scan_event(row) for row in rows]
 
 
@@ -110,11 +160,12 @@ def create_report(payload: dict) -> dict:
         cursor = conn.execute(
             """
             INSERT INTO reports (
-                timestamp, url, report_type, comment, score, verdict, level
-            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                timestamp, user_id, url, report_type, comment, score, verdict, level
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 timestamp,
+                payload.get("user_id"),
                 payload["url"],
                 payload["report_type"],
                 payload.get("comment", ""),
@@ -128,6 +179,7 @@ def create_report(payload: dict) -> dict:
     return {
         "id": report_id,
         "timestamp": timestamp,
+        "user_id": payload.get("user_id"),
         "url": payload["url"],
         "report_type": payload["report_type"],
         "comment": payload.get("comment", ""),
@@ -137,20 +189,105 @@ def create_report(payload: dict) -> dict:
     }
 
 
-def read_reports(limit: int | None = None) -> list[dict]:
+def read_reports(
+    limit: int | None = None,
+    *,
+    days: int | None = None,
+    report_type: str | None = None,
+    user_id: int | None = None,
+) -> list[dict]:
+    filters = []
+    params: list = []
+    if days is not None and days > 0:
+        since = (datetime.now(timezone.utc) - timedelta(days=days - 1)).date().isoformat()
+        filters.append("timestamp >= ?")
+        params.append(f"{since}T00:00:00+00:00")
+    if report_type:
+        filters.append("report_type = ?")
+        params.append(report_type)
+    if user_id is not None:
+        filters.append("user_id = ?")
+        params.append(user_id)
+
+    where_clause = f"WHERE {' AND '.join(filters)}" if filters else ""
     query = """
-        SELECT id, timestamp, url, report_type, comment, score, verdict, level
+        SELECT id, timestamp, user_id, url, report_type, comment, score, verdict, level
         FROM reports
+        {where_clause}
         ORDER BY id DESC
-    """
-    params: tuple = ()
+    """.format(where_clause=where_clause)
     if limit is not None:
         query += " LIMIT ?"
-        params = (limit,)
+        params.append(limit)
 
     with closing(get_connection()) as conn:
-        rows = conn.execute(query, params).fetchall()
+        rows = conn.execute(query, tuple(params)).fetchall()
     return [_row_to_report(row) for row in rows]
+
+
+def create_user(name: str, email: str, password: str) -> dict | None:
+    timestamp = datetime.now(timezone.utc).isoformat()
+    password_hash = _hash_password(password)
+    normalized_email = email.strip().lower()
+    with closing(get_connection()) as conn:
+        try:
+            cursor = conn.execute(
+                """
+                INSERT INTO users (created_at, name, email, password_hash)
+                VALUES (?, ?, ?, ?)
+                """,
+                (timestamp, name.strip(), normalized_email, password_hash),
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            return None
+        user_id = cursor.lastrowid
+    return {"id": user_id, "created_at": timestamp, "name": name.strip(), "email": normalized_email}
+
+
+def authenticate_user(email: str, password: str) -> dict | None:
+    normalized_email = email.strip().lower()
+    with closing(get_connection()) as conn:
+        row = conn.execute(
+            "SELECT id, created_at, name, email, password_hash FROM users WHERE email = ?",
+            (normalized_email,),
+        ).fetchone()
+    if not row or not _verify_password(password, row["password_hash"]):
+        return None
+    return {"id": row["id"], "created_at": row["created_at"], "name": row["name"], "email": row["email"]}
+
+
+def create_session(user_id: int) -> str:
+    token = secrets.token_urlsafe(32)
+    with closing(get_connection()) as conn:
+        conn.execute(
+            "INSERT INTO sessions (user_id, token, created_at) VALUES (?, ?, ?)",
+            (user_id, token, datetime.now(timezone.utc).isoformat()),
+        )
+        conn.commit()
+    return token
+
+
+def delete_session(token: str) -> None:
+    with closing(get_connection()) as conn:
+        conn.execute("DELETE FROM sessions WHERE token = ?", (token,))
+        conn.commit()
+
+
+def get_user_by_token(token: str) -> dict | None:
+    with closing(get_connection()) as conn:
+        row = conn.execute(
+            """
+            SELECT users.id, users.created_at, users.name, users.email
+            FROM sessions
+            JOIN users ON users.id = sessions.user_id
+            WHERE sessions.token = ?
+            """,
+            (token,),
+        ).fetchone()
+    if not row:
+        return None
+    return {"id": row["id"], "created_at": row["created_at"], "name": row["name"], "email": row["email"]}
 
 
 def summarize_scan_events(events: list[dict]) -> dict:
@@ -181,6 +318,7 @@ def summarize_scan_events(events: list[dict]) -> dict:
         "latest_scan_at": latest_scan_at,
         "source_totals": source_totals,
         "trend_last_7_days": last_7_days,
+        "highest_score": max((event.get("score", 0) for event in events), default=0),
         "generated_at": datetime.now(timezone.utc).isoformat(),
     }
 
@@ -207,6 +345,7 @@ def summarize_reports(reports: list[dict]) -> dict:
 def _row_to_scan_event(row: sqlite3.Row) -> dict:
     return {
         "timestamp": row["timestamp"],
+        "user_id": row["user_id"],
         "raw_url": row["raw_url"],
         "normalized_url": row["normalized_url"],
         "hostname": row["hostname"],
@@ -222,6 +361,7 @@ def _row_to_report(row: sqlite3.Row) -> dict:
     return {
         "id": row["id"],
         "timestamp": row["timestamp"],
+        "user_id": row["user_id"],
         "url": row["url"],
         "report_type": row["report_type"],
         "comment": row["comment"],
@@ -247,3 +387,24 @@ def _increment_trend(window: list[dict], timestamp: str | None) -> None:
         if item["day"] == day:
             item["count"] += 1
             return
+
+
+def _ensure_column(conn: sqlite3.Connection, table: str, column: str, definition: str) -> None:
+    columns = {row["name"] for row in conn.execute(f"PRAGMA table_info({table})").fetchall()}
+    if column not in columns:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
+
+
+def _hash_password(password: str) -> str:
+    salt = secrets.token_hex(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120000).hex()
+    return f"{salt}${digest}"
+
+
+def _verify_password(password: str, stored: str) -> bool:
+    try:
+        salt, digest = stored.split("$", 1)
+    except ValueError:
+        return False
+    candidate = hashlib.pbkdf2_hmac("sha256", password.encode("utf-8"), salt.encode("utf-8"), 120000).hex()
+    return hmac.compare_digest(candidate, digest)

@@ -255,7 +255,7 @@ def _build_scan_event(result: dict, raw_url: str, hostname: str) -> dict:
     }
 
 
-async def analyze_scan(raw_url: str) -> dict:
+async def analyze_scan(raw_url: str, user_id: int | None = None) -> dict:
     normalized_url = normalize_input_url(raw_url)
 
     try:
@@ -287,6 +287,7 @@ async def analyze_scan(raw_url: str) -> dict:
         )
         result["verdict"] = "Site fiable"
         result["level"] = "safe"
+        append_scan_event(_build_scan_event(result, raw_url, hostname) | {"user_id": user_id})
         return result
 
     for pattern in AFRICA_BLACKLIST:
@@ -513,5 +514,5 @@ async def analyze_scan(raw_url: str) -> dict:
         )
 
     result = _apply_final_verdict(result)
-    append_scan_event(_build_scan_event(result, raw_url, hostname))
+    append_scan_event(_build_scan_event(result, raw_url, hostname) | {"user_id": user_id})
     return result

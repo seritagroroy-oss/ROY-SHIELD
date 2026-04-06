@@ -13,6 +13,8 @@ ROY SHIELD is a phishing and scam detection platform focused on fast URL analysi
 - Optional VirusTotal integration in the browser
 - Persistent scan and report storage with SQLite
 - Live dashboard for recent scans, risk levels, and community reports
+- Filterable analytics dashboard with 7/30/90-day views
+- Analyst workspace with lightweight authentication and personal scan history
 - Local history and export-friendly reporting flow
 
 ## Stack
@@ -87,6 +89,11 @@ Then open [index.html](/e:/SITE/index.html) in your browser.
 - `POST /reports`
 - `GET /reports/recent`
 - `GET /reports/stats`
+- `POST /auth/register`
+- `POST /auth/login`
+- `POST /auth/logout`
+- `GET /me`
+- `GET /me/scans`
 
 ## Testing
 
@@ -108,9 +115,10 @@ GitHub Actions runs the same backend test suite on pushes and pull requests to `
 - [x] Persistent storage for scans and reports
 - [x] Dashboard metrics and recent activity feeds
 - [x] Community reporting backend
+- [x] Analyst workspace authentication
+- [x] Filterable analytics views
 - [ ] Public demo assets
 - [ ] Shareable scan report pages
-- [ ] Authentication and saved analyst workspaces
 - [ ] Alerting and notification channels
 
 ## Note

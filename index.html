@@ -26,8 +26,16 @@
     </div>
     <nav class="nav">
       <a href="#" class="nav-link active">Scanner</a>
+      <a href="#analytics" class="nav-link">Analytics</a>
       <a href="#how" class="nav-link">Comment ça marche</a>
       <a href="#tips" class="nav-link">Conseils</a>
+      <button class="nav-btn-workspace" id="workspaceBtn" title="Workspace analyste">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+          <circle cx="12" cy="7" r="4"/>
+        </svg>
+        <span id="workspaceBtnLabel">Workspace</span>
+      </button>
       <button class="nav-btn-history" id="historyToggleBtn" title="Historique">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
@@ -162,6 +170,37 @@
           </div>
           <span class="live-dashboard-status" id="dashboardStatus">Connexion...</span>
         </div>
+        <div class="dashboard-filters">
+          <label class="filter-chip">
+            <span>Période</span>
+            <select id="dashboardDaysFilter">
+              <option value="7">7 jours</option>
+              <option value="30" selected>30 jours</option>
+              <option value="90">90 jours</option>
+            </select>
+          </label>
+          <label class="filter-chip">
+            <span>Niveau</span>
+            <select id="dashboardLevelFilter">
+              <option value="">Tous</option>
+              <option value="danger">Dangereux</option>
+              <option value="warn">Suspects</option>
+              <option value="safe">Fiables</option>
+            </select>
+          </label>
+          <label class="filter-chip">
+            <span>Signalement</span>
+            <select id="dashboardReportTypeFilter">
+              <option value="">Tous</option>
+              <option value="phishing">Phishing</option>
+              <option value="recrutement">Recrutement</option>
+              <option value="concours">Concours</option>
+              <option value="paiement">Paiement</option>
+              <option value="usurpation">Usurpation</option>
+              <option value="autre">Autre</option>
+            </select>
+          </label>
+        </div>
         <div class="live-dashboard-grid">
           <div class="live-metric-card">
             <span class="live-metric-label">Scans total</span>
@@ -243,6 +282,95 @@
           </div>
         </div>
       </section>
+    </section>
+
+    <section id="analytics" class="analytics-section">
+      <div class="analytics-section-header">
+        <div>
+          <p class="analytics-section-kicker">Centre d'analyse</p>
+          <h2 class="section-title analytics-section-title">Analytics avancées</h2>
+        </div>
+        <p class="section-sub analytics-section-sub">Une vue plus complète pour suivre l'activité, le niveau de risque et la pression communautaire.</p>
+      </div>
+      <div class="analytics-overview-grid">
+        <div class="analytics-overview-card">
+          <span class="overview-card-label">Pic de risque</span>
+          <strong class="overview-card-value" id="analyticsPeakRisk">0</strong>
+          <span class="overview-card-meta">Score maximal sur la période</span>
+        </div>
+        <div class="analytics-overview-card">
+          <span class="overview-card-label">Dernier signalement</span>
+          <strong class="overview-card-value" id="analyticsLatestReport">Aucun</strong>
+          <span class="overview-card-meta">Activité communautaire la plus récente</span>
+        </div>
+        <div class="analytics-overview-card">
+          <span class="overview-card-label">Dominante</span>
+          <strong class="overview-card-value" id="analyticsDominantLevel">Aucune</strong>
+          <span class="overview-card-meta">Famille de risque la plus représentée</span>
+        </div>
+      </div>
+      <div class="analytics-detail-grid">
+        <div class="analytics-detail-panel">
+          <div class="analytics-panel-header">
+            <div>
+              <p class="analytics-panel-kicker">Surveillance</p>
+              <h3>Lecture opérationnelle</h3>
+            </div>
+          </div>
+          <div class="intel-list" id="analyticsIntelList">
+            <p class="analytics-empty">Les principaux enseignements apparaîtront ici.</p>
+          </div>
+        </div>
+        <div class="analytics-detail-panel">
+          <div class="analytics-panel-header">
+            <div>
+              <p class="analytics-panel-kicker">Activité</p>
+              <h3>Flux analytique</h3>
+            </div>
+          </div>
+          <div class="analytics-stream" id="analyticsActivityStream">
+            <p class="analytics-empty">Le flux d'activité apparaîtra ici.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="workspace" class="workspace-section">
+      <div class="workspace-header">
+        <div>
+          <p class="workspace-kicker">Workspace analyste</p>
+          <h2 class="section-title workspace-title">Espace personnel</h2>
+        </div>
+        <div class="workspace-badge" id="workspaceStatusBadge">Hors connexion</div>
+      </div>
+      <div class="workspace-grid">
+        <div class="workspace-card workspace-auth-card">
+          <div class="workspace-card-header">
+            <h3 id="workspaceCardTitle">Connexion requise</h3>
+            <p id="workspaceCardSubtitle">Connectez-vous pour enregistrer vos scans et retrouver votre historique.</p>
+          </div>
+          <div class="workspace-profile hidden" id="workspaceProfile">
+            <div class="workspace-profile-name" id="workspaceProfileName">Analyste</div>
+            <div class="workspace-profile-email" id="workspaceProfileEmail">email@example.com</div>
+            <div class="workspace-profile-actions">
+              <button class="workspace-secondary-btn" id="workspaceRefreshBtn">Actualiser</button>
+              <button class="workspace-danger-btn" id="workspaceLogoutBtn">Se déconnecter</button>
+            </div>
+          </div>
+          <div class="workspace-auth-actions" id="workspaceAuthActions">
+            <button class="workspace-primary-btn" id="openAuthModalBtn">Se connecter / S'inscrire</button>
+          </div>
+        </div>
+        <div class="workspace-card">
+          <div class="workspace-card-header">
+            <h3>Historique personnel</h3>
+            <p>Derniers scans associés à votre compte.</p>
+          </div>
+          <div class="workspace-history" id="workspaceHistoryList">
+            <p class="analytics-empty">Connectez-vous pour afficher votre historique synchronisé.</p>
+          </div>
+        </div>
+      </div>
     </section>
 
     <!-- Section résultat unique -->
@@ -564,6 +692,41 @@
           <button class="modal-save-btn" onclick="submitReport()">Envoyer le signalement</button>
         </div>
         <p class="modal-note">Les signalements sont sauvegardés localement et peuvent aider à améliorer la détection future.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-overlay hidden" id="authModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Workspace analyste</h3>
+        <button class="panel-close-btn" onclick="closeAuthModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div class="auth-tabs">
+          <button class="auth-tab active" id="authTabLogin" onclick="switchAuthTab('login')">Connexion</button>
+          <button class="auth-tab" id="authTabRegister" onclick="switchAuthTab('register')">Inscription</button>
+        </div>
+        <div id="authRegisterNameWrap" class="modal-field hidden">
+          <label>Nom</label>
+          <input type="text" id="authNameInput" placeholder="Votre nom d'analyste" autocomplete="name" />
+        </div>
+        <div class="modal-field">
+          <label>Email</label>
+          <input type="email" id="authEmailInput" placeholder="analyste@royshield.app" autocomplete="email" />
+        </div>
+        <div class="modal-field">
+          <label>Mot de passe</label>
+          <input type="password" id="authPasswordInput" placeholder="Mot de passe" autocomplete="current-password" />
+        </div>
+        <div class="modal-actions">
+          <button class="modal-save-btn" id="authSubmitBtn" onclick="submitAuth()">Continuer</button>
+        </div>
+        <p class="modal-note" id="authNote">Votre session permet de conserver vos scans et de suivre votre historique personnel.</p>
       </div>
     </div>
   </div>

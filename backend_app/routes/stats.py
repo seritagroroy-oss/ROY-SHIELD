@@ -6,17 +6,19 @@ router = APIRouter()
 
 
 @router.get("/stats")
-def stats():
-    events = read_scan_events()
-    reports = read_reports()
+def stats(days: int = 30, level: str | None = None, report_type: str | None = None):
+    safe_days = max(1, min(days, 365))
+    events = read_scan_events(days=safe_days, level=level)
+    reports = read_reports(days=safe_days, report_type=report_type)
     payload = summarize_scan_events(events)
     payload["reports"] = summarize_reports(reports)
     return payload
 
 
 @router.get("/recent-scans")
-def recent_scans(limit: int = 5):
+def recent_scans(limit: int = 5, days: int = 30, level: str | None = None):
     safe_limit = max(1, min(limit, 20))
-    events = read_scan_events(limit=safe_limit)
+    safe_days = max(1, min(days, 365))
+    events = read_scan_events(limit=safe_limit, days=safe_days, level=level)
     events.reverse()
     return {"items": events, "count": len(events)}

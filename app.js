@@ -8,17 +8,30 @@ const loadingOverlay = document.getElementById("loadingOverlay");
 
 let currentResult = null;
 let currentRawUrl = "";
+let authMode = "login";
+let currentUser = null;
 
 // URL du backend Python — à remplacer par l'URL Render après déploiement
 const BACKEND_URL =
   window.ROY_SHIELD_CONFIG?.backendUrl ||
   "http://127.0.0.1:8000";
 
+const AUTH_TOKEN_KEY = "royshield_auth_token";
+
+function getAuthToken() {
+  return localStorage.getItem(AUTH_TOKEN_KEY) || "";
+}
+
+function getAuthHeaders() {
+  const token = getAuthToken();
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function callPythonBackend(url) {
   try {
     const resp = await fetch(BACKEND_URL + "/scan", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify({ url })
     });
     if (!resp.ok) return null;
@@ -30,7 +43,9 @@ async function callPythonBackend(url) {
 
 async function fetchBackendJSON(path) {
   try {
-    const response = await fetch(BACKEND_URL + path);
+    const response = await fetch(BACKEND_URL + path, {
+      headers: { ...getAuthHeaders() }
+    });
     if (!response.ok) return null;
     return await response.json();
   } catch {
@@ -48,6 +63,16 @@ document.getElementById("historyToggleBtn").addEventListener("click", openHistor
 document.getElementById("vtSettingsBtn").addEventListener("click", openVTModal);
 document.getElementById("exportBtn").addEventListener("click", exportReport);
 document.getElementById("reportBtn").addEventListener("click", openReportModal);
+document.getElementById("workspaceBtn").addEventListener("click", () => {
+  document.getElementById("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
+});
+document.getElementById("openAuthModalBtn").addEventListener("click", openAuthModal);
+document.getElementById("workspaceRefreshBtn").addEventListener("click", refreshWorkspace);
+document.getElementById("workspaceLogoutBtn").addEventListener("click", logoutWorkspace);
+["dashboardDaysFilter", "dashboardLevelFilter", "dashboardReportTypeFilter"].forEach(id => {
+  const element = document.getElementById(id);
+  if (element) element.addEventListener("change", refreshLiveDashboard);
+});
 
 // #5 — Jauge temps réel
 urlInput.addEventListener("input", () => {
@@ -419,6 +444,23 @@ function formatRelativeDate(isoString) {
   });
 }
 
+function getDashboardFilters() {
+  return {
+    days: document.getElementById("dashboardDaysFilter")?.value || "30",
+    level: document.getElementById("dashboardLevelFilter")?.value || "",
+    reportType: document.getElementById("dashboardReportTypeFilter")?.value || ""
+  };
+}
+
+function buildQuery(params) {
+  const query = new URLSearchParams();
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== null && value !== undefined && value !== "") query.set(key, String(value));
+  });
+  const text = query.toString();
+  return text ? `?${text}` : "";
+}
+
 function renderRecentScans(items) {
   const list = document.getElementById("recentScansList");
   if (!items || items.length === 0) {
@@ -577,13 +619,66 @@ function renderAnalyticsPanels(stats) {
       ? `${totalOnWindow} scan(s) sur 7 jours`
       : "Aucune activite recente";
   }
+
+  renderAnalyticsDetail(stats || {});
+}
+
+function renderAnalyticsDetail(stats) {
+  const peakRisk = document.getElementById("analyticsPeakRisk");
+  const latestReport = document.getElementById("analyticsLatestReport");
+  const dominantLevel = document.getElementById("analyticsDominantLevel");
+  const intelList = document.getElementById("analyticsIntelList");
+  const stream = document.getElementById("analyticsActivityStream");
+  if (!peakRisk || !latestReport || !dominantLevel || !intelList || !stream) return;
+
+  peakRisk.textContent = stats.highest_score ?? 0;
+  latestReport.textContent = formatShortDate(stats.reports?.latest_report_at) || "Aucun";
+
+  const levels = [
+    { key: "danger", label: "Dangereux", count: stats.danger_scans ?? 0 },
+    { key: "warn", label: "Suspects", count: stats.warn_scans ?? 0 },
+    { key: "safe", label: "Fiables", count: stats.safe_scans ?? 0 }
+  ].sort((a, b) => b.count - a.count);
+  dominantLevel.textContent = levels[0]?.count ? `${levels[0].label}` : "Aucune";
+
+  const insights = [];
+  if ((stats.danger_scans ?? 0) > 0) insights.push(["Pression forte", `${stats.danger_scans} lien(s) dangereux sur la période filtrée.`]);
+  if ((stats.average_score ?? 0) >= 50) insights.push(["Risque moyen élevé", `Le score moyen atteint ${stats.average_score}/100.`]);
+  if ((stats.reports?.total_reports ?? 0) > 0) insights.push(["Communauté active", `${stats.reports.total_reports} signalement(s) ont alimenté la veille.`]);
+  if ((stats.source_totals?.backend_enriched ?? 0) > 0) insights.push(["Analyse profonde", `${stats.source_totals.backend_enriched} scan(s) ont été enrichis par le backend.`]);
+
+  intelList.innerHTML = insights.length
+    ? insights.map(([title, detail]) => `<div class="intel-item"><strong>${title}</strong><span>${detail}</span></div>`).join("")
+    : '<p class="analytics-empty">Les principaux enseignements apparaîtront ici.</p>';
+
+  const activityItems = [
+    ["Scans observés", `${stats.total_scans ?? 0} scan(s) sur la fenêtre active.`],
+    ["Dernier scan", formatShortDate(stats.latest_scan_at) || "Aucun scan backend"],
+    ["Dernier signalement", formatShortDate(stats.reports?.latest_report_at) || "Aucun"],
+  ];
+  stream.innerHTML = activityItems
+    .map(([title, detail]) => `<div class="stream-item"><strong>${title}</strong><span>${detail}</span></div>`)
+    .join("");
+}
+
+function formatShortDate(isoString) {
+  if (!isoString) return "";
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "";
+  return date.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 async function refreshLiveDashboard() {
+  const filters = getDashboardFilters();
   const [stats, recent, recentReports] = await Promise.all([
-    fetchBackendJSON("/stats"),
-    fetchBackendJSON("/recent-scans"),
-    fetchBackendJSON("/reports/recent")
+    fetchBackendJSON(`/stats${buildQuery({ days: filters.days, level: filters.level, report_type: filters.reportType })}`),
+    fetchBackendJSON(`/recent-scans${buildQuery({ days: filters.days, level: filters.level, limit: 5 })}`),
+    fetchBackendJSON(`/reports/recent${buildQuery({ days: filters.days, report_type: filters.reportType, limit: 5 })}`)
   ]);
 
   const statusEl = document.getElementById("dashboardStatus");
@@ -838,7 +933,7 @@ async function submitReport() {
   try {
     const response = await fetch(BACKEND_URL + "/reports", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json", ...getAuthHeaders() },
       body: JSON.stringify(payload)
     });
 
@@ -864,6 +959,140 @@ async function submitReport() {
   }
 }
 
+function switchAuthTab(mode) {
+  authMode = mode;
+  document.getElementById("authTabLogin").classList.toggle("active", mode === "login");
+  document.getElementById("authTabRegister").classList.toggle("active", mode === "register");
+  document.getElementById("authRegisterNameWrap").classList.toggle("hidden", mode !== "register");
+  document.getElementById("authSubmitBtn").textContent = mode === "register" ? "Créer le compte" : "Se connecter";
+}
+
+function openAuthModal() {
+  document.getElementById("authModal").classList.remove("hidden");
+}
+
+function closeAuthModal() {
+  document.getElementById("authModal").classList.add("hidden");
+}
+
+async function submitAuth() {
+  const email = document.getElementById("authEmailInput").value.trim();
+  const password = document.getElementById("authPasswordInput").value.trim();
+  const name = document.getElementById("authNameInput").value.trim();
+
+  if (!email || !password || (authMode === "register" && !name)) {
+    showToast("Renseignez les champs requis.", "warn");
+    return;
+  }
+
+  const endpoint = authMode === "register" ? "/auth/register" : "/auth/login";
+  const payload = authMode === "register" ? { name, email, password } : { email, password };
+
+  try {
+    const response = await fetch(BACKEND_URL + endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+    if (!response.ok) throw new Error("auth_failed");
+
+    const data = await response.json();
+    localStorage.setItem(AUTH_TOKEN_KEY, data.token);
+    currentUser = data.user || null;
+    closeAuthModal();
+    updateWorkspaceUI();
+    await refreshWorkspace();
+    showToast(authMode === "register" ? "Compte créé et session ouverte." : "Connexion réussie.", "safe");
+  } catch {
+    showToast("Impossible de valider la session.", "warn");
+  }
+}
+
+async function refreshWorkspace() {
+  const token = getAuthToken();
+  if (!token) {
+    currentUser = null;
+    updateWorkspaceUI();
+    return;
+  }
+
+  const [profile, scans] = await Promise.all([
+    fetchBackendJSON("/me"),
+    fetchBackendJSON("/me/scans?limit=8&days=90")
+  ]);
+
+  if (!profile?.ok) {
+    localStorage.removeItem(AUTH_TOKEN_KEY);
+    currentUser = null;
+    updateWorkspaceUI();
+    return;
+  }
+
+  currentUser = profile.user;
+  updateWorkspaceUI(scans);
+}
+
+function updateWorkspaceUI(scanPayload = null) {
+  const badge = document.getElementById("workspaceStatusBadge");
+  const title = document.getElementById("workspaceCardTitle");
+  const subtitle = document.getElementById("workspaceCardSubtitle");
+  const profile = document.getElementById("workspaceProfile");
+  const authActions = document.getElementById("workspaceAuthActions");
+  const history = document.getElementById("workspaceHistoryList");
+  const buttonLabel = document.getElementById("workspaceBtnLabel");
+
+  if (!currentUser) {
+    badge.textContent = "Hors connexion";
+    badge.classList.remove("is-online");
+    title.textContent = "Connexion requise";
+    subtitle.textContent = "Connectez-vous pour enregistrer vos scans et retrouver votre historique.";
+    profile.classList.add("hidden");
+    authActions.classList.remove("hidden");
+    history.innerHTML = '<p class="analytics-empty">Connectez-vous pour afficher votre historique synchronisé.</p>';
+    buttonLabel.textContent = "Workspace";
+    return;
+  }
+
+  badge.textContent = "Session active";
+  badge.classList.add("is-online");
+  title.textContent = "Workspace connecté";
+  subtitle.textContent = "Vos scans et analyses sont maintenant liés à votre profil.";
+  profile.classList.remove("hidden");
+  authActions.classList.add("hidden");
+  document.getElementById("workspaceProfileName").textContent = currentUser.name || "Analyste";
+  document.getElementById("workspaceProfileEmail").textContent = currentUser.email || "";
+  buttonLabel.textContent = currentUser.name || "Workspace";
+
+  const items = scanPayload?.items || [];
+  if (!items.length) {
+    history.innerHTML = '<p class="analytics-empty">Aucun scan personnel enregistré pour le moment.</p>';
+    return;
+  }
+
+  history.innerHTML = items.map(item => `
+    <div class="workspace-history-item">
+      <strong>${item.verdict || "Analyse"}</strong>
+      <span>${(item.normalized_url || item.raw_url || "").slice(0, 90)}</span>
+      <span>${formatShortDate(item.timestamp)} · score ${item.score ?? 0}</span>
+    </div>
+  `).join("");
+}
+
+async function logoutWorkspace() {
+  try {
+    await fetch(BACKEND_URL + "/auth/logout", {
+      method: "POST",
+      headers: { ...getAuthHeaders() }
+    });
+  } catch {
+    // no-op
+  }
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  currentUser = null;
+  updateWorkspaceUI();
+  showToast("Session fermée.", "safe");
+}
+
 // ─── Toast ─────────────────────────────────────────────────────────────────────
 
 let toastTimer = null;
@@ -880,5 +1109,8 @@ function showToast(message, level = "safe") {
 
 updateHistoryCount();
 updateVTDot();
+switchAuthTab("login");
+updateWorkspaceUI();
+refreshWorkspace();
 refreshLiveDashboard();
 setInterval(refreshLiveDashboard, 30000);

@@ -12,3 +12,14 @@ class ReportRequest(BaseModel):
     score: int | None = None
     verdict: str | None = None
     level: str | None = None
+
+
+class RegisterRequest(BaseModel):
+    name: str
+    email: str
+    password: str
+
+
+class LoginRequest(BaseModel):
+    email: str
+    password: str
