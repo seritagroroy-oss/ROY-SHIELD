@@ -449,6 +449,136 @@ function renderRecentScans(items) {
   }).join("");
 }
 
+function renderTrendChart(containerId, items, options = {}) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+
+  if (!items || items.length === 0) {
+    container.innerHTML = `<p class="analytics-empty">${options.emptyText || "Aucune donnee disponible."}</p>`;
+    return;
+  }
+
+  const maxValue = Math.max(...items.map(item => item.count || 0), 1);
+  const fillClass = options.reportStyle ? "trend-bar-fill is-report" : "trend-bar-fill";
+
+  container.innerHTML = items.map(item => {
+    const ratio = Math.max((item.count || 0) / maxValue, 0.08);
+    const height = Math.round(ratio * 100);
+    const date = new Date(`${item.day}T00:00:00`);
+    const label = Number.isNaN(date.getTime())
+      ? item.day
+      : date.toLocaleDateString("fr-FR", { weekday: "short" });
+
+    return `
+      <div class="trend-bar">
+        <div class="trend-bar-track">
+          <div class="${fillClass}" style="height:${height}%"></div>
+        </div>
+        <div class="trend-bar-meta">
+          <span class="trend-bar-value">${item.count ?? 0}</span>
+          <span class="trend-bar-label">${label.replace(".", "")}</span>
+        </div>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderRiskMix(stats) {
+  const chart = document.getElementById("riskMixChart");
+  const legend = document.getElementById("riskMixLegend");
+  const summary = document.getElementById("riskMixSummary");
+  if (!chart || !legend || !summary) return;
+
+  const safe = stats.safe_scans ?? 0;
+  const warn = stats.warn_scans ?? 0;
+  const danger = stats.danger_scans ?? 0;
+  const total = Math.max(safe + warn + danger, 0);
+
+  summary.textContent = total > 0 ? `${total} scan(s)` : "0 scan";
+
+  if (total === 0) {
+    chart.style.background =
+      "radial-gradient(circle at center, rgba(7,11,18,0.96) 0 39%, transparent 40%), conic-gradient(rgba(255,255,255,0.08) 0deg 360deg)";
+    legend.innerHTML = '<p class="analytics-empty">La repartition apparaitra des que le backend aura des scans.</p>';
+    return;
+  }
+
+  const safeDeg = (safe / total) * 360;
+  const warnDeg = (warn / total) * 360;
+  const dangerDeg = 360 - safeDeg - warnDeg;
+  const warnEnd = safeDeg + warnDeg;
+
+  chart.style.background = [
+    "radial-gradient(circle at center, rgba(7,11,18,0.96) 0 39%, transparent 40%)",
+    `conic-gradient(
+      var(--safe) 0deg ${safeDeg}deg,
+      var(--warn) ${safeDeg}deg ${warnEnd}deg,
+      var(--danger) ${warnEnd}deg ${warnEnd + dangerDeg}deg
+    )`
+  ].join(", ");
+
+  const levels = [
+    { key: "safe", label: "Fiables", count: safe },
+    { key: "warn", label: "Suspects", count: warn },
+    { key: "danger", label: "Dangereux", count: danger }
+  ];
+
+  legend.innerHTML = levels.map(level => {
+    const percent = total ? Math.round((level.count / total) * 100) : 0;
+    return `
+      <div class="mix-legend-item">
+        <div class="mix-legend-main">
+          <span class="mix-legend-dot ${level.key}"></span>
+          <span>${level.label}</span>
+        </div>
+        <span class="mix-legend-value">${level.count} · ${percent}%</span>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderReportInsights(reportStats) {
+  const summary = document.getElementById("reportsTrendSummary");
+  const topType = document.getElementById("topReportType");
+  const topMeta = document.getElementById("topReportTypeMeta");
+  if (!summary || !topType || !topMeta) return;
+
+  const total = reportStats?.total_reports ?? 0;
+  summary.textContent = total > 0 ? `${total} signalement(s)` : "Aucun signalement";
+
+  const entries = Object.entries(reportStats?.by_type || {}).sort((a, b) => b[1] - a[1]);
+  if (entries.length === 0) {
+    topType.textContent = "Aucun";
+    topMeta.textContent = "Aucune tendance detectee";
+    return;
+  }
+
+  const [type, count] = entries[0];
+  topType.textContent = type;
+  topMeta.textContent = `${count} cas identifies dans les signalements recents`;
+}
+
+function renderAnalyticsPanels(stats) {
+  renderTrendChart("scanTrendChart", stats?.trend_last_7_days || [], {
+    emptyText: "Les tendances apparaitront apres les premiers scans."
+  });
+  renderTrendChart("reportsTrendChart", stats?.reports?.trend_last_7_days || [], {
+    emptyText: "Les signalements apparaitront ici.",
+    reportStyle: true
+  });
+  renderRiskMix(stats || {});
+  renderReportInsights(stats?.reports || {});
+
+  const scanTrendSummary = document.getElementById("scanTrendSummary");
+  if (scanTrendSummary) {
+    const trend = stats?.trend_last_7_days || [];
+    const totalOnWindow = trend.reduce((sum, item) => sum + (item.count || 0), 0);
+    scanTrendSummary.textContent = totalOnWindow > 0
+      ? `${totalOnWindow} scan(s) sur 7 jours`
+      : "Aucune activite recente";
+  }
+}
+
 async function refreshLiveDashboard() {
   const [stats, recent, recentReports] = await Promise.all([
     fetchBackendJSON("/stats"),
@@ -462,6 +592,7 @@ async function refreshLiveDashboard() {
   if (!stats || !recent) {
     statusEl.textContent = "Backend indisponible";
     statusEl.classList.add("is-offline");
+    renderAnalyticsPanels(null);
     return;
   }
 
@@ -472,6 +603,7 @@ async function refreshLiveDashboard() {
   document.getElementById("statsDangerScans").textContent = stats.danger_scans ?? 0;
   document.getElementById("statsBackendEnriched").textContent = stats.source_totals?.backend_enriched ?? 0;
   document.getElementById("statsLatestScan").textContent = formatRelativeDate(stats.latest_scan_at);
+  renderAnalyticsPanels(stats);
   renderRecentScans(recent.items || []);
   renderRecentReports(recentReports?.items || []);
 

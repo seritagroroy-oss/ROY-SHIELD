@@ -180,6 +180,50 @@
             <strong class="live-metric-value" id="statsBackendEnriched">0</strong>
           </div>
         </div>
+        <div class="analytics-grid">
+          <div class="analytics-panel analytics-panel-wide">
+            <div class="analytics-panel-header">
+              <div>
+                <p class="analytics-panel-kicker">Tendance</p>
+                <h3>Volume des scans sur 7 jours</h3>
+              </div>
+              <span class="analytics-panel-note" id="scanTrendSummary">Aucune activite recente</span>
+            </div>
+            <div class="trend-chart" id="scanTrendChart">
+              <p class="analytics-empty">Les tendances apparaitront apres les premiers scans.</p>
+            </div>
+          </div>
+          <div class="analytics-panel">
+            <div class="analytics-panel-header">
+              <div>
+                <p class="analytics-panel-kicker">Risque</p>
+                <h3>Repartition des verdicts</h3>
+              </div>
+              <span class="analytics-panel-note" id="riskMixSummary">0 scan</span>
+            </div>
+            <div class="mix-chart-wrap">
+              <div class="mix-chart" id="riskMixChart" aria-hidden="true"></div>
+              <div class="mix-legend" id="riskMixLegend"></div>
+            </div>
+          </div>
+          <div class="analytics-panel">
+            <div class="analytics-panel-header">
+              <div>
+                <p class="analytics-panel-kicker">Signalements</p>
+                <h3>Activite communautaire</h3>
+              </div>
+              <span class="analytics-panel-note" id="reportsTrendSummary">Aucun signalement</span>
+            </div>
+            <div class="trend-chart trend-chart-compact" id="reportsTrendChart">
+              <p class="analytics-empty">Les signalements apparaitront ici.</p>
+            </div>
+            <div class="report-insight-card" id="reportInsightCard">
+              <span class="report-insight-label">Type dominant</span>
+              <strong class="report-insight-value" id="topReportType">Aucun</strong>
+              <span class="report-insight-meta" id="topReportTypeMeta">Aucune tendance detectee</span>
+            </div>
+          </div>
+        </div>
         <div class="live-dashboard-feed">
           <div class="live-feed-header">
             <h3>Scans récents</h3>
