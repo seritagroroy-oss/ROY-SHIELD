@@ -16,7 +16,8 @@ ROY SHIELD is a phishing and scam detection tool focused on fast URL analysis. I
 ## Stack
 
 - Frontend: `index.html`, `style.css`, `app.js`, `analyzer.js`
-- Backend: FastAPI in [backend.py](/e:/SITE/backend.py)
+- Backend: FastAPI entrypoint in [backend.py](/e:/SITE/backend.py)
+- Backend modules: [backend_app/app.py](/e:/SITE/backend_app/app.py), [backend_app/routes/scan.py](/e:/SITE/backend_app/routes/scan.py), [backend_app/services/scan_service.py](/e:/SITE/backend_app/services/scan_service.py)
 - Config: [config.js](/e:/SITE/config.js) and [.env.example](/e:/SITE/.env.example)
 - Tests: [tests/test_backend.py](/e:/SITE/tests/test_backend.py)
 - CI: [.github/workflows/ci.yml](/e:/SITE/.github/workflows/ci.yml)
