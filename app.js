@@ -28,6 +28,16 @@ async function callPythonBackend(url) {
   }
 }
 
+async function fetchBackendJSON(path) {
+  try {
+    const response = await fetch(BACKEND_URL + path);
+    if (!response.ok) return null;
+    return await response.json();
+  } catch {
+    return null;
+  }
+}
+
 // ─── Event listeners ───────────────────────────────────────────────────────────
 
 urlInput.addEventListener("keydown", e => { if (e.key === "Enter") runScan(); });
@@ -94,6 +104,7 @@ function runTextScan() {
     }
     renderMultiResults(results);
     results.forEach(r => saveToHistory(r));
+    refreshLiveDashboard();
     analyzeTextBtn.disabled = false;
   });
 }
@@ -180,6 +191,7 @@ function runScan() {
     saveToHistory(merged);
     runVirusTotalCheck(raw);
     openReportModal_scan(merged);
+    refreshLiveDashboard();
     analyzeBtn.disabled = false;
   });
 }
@@ -390,8 +402,76 @@ function loadFromHistory(idx) {
     currentResult = merged;
     currentRawUrl = item.url;
     openReportModal_scan(merged);
+    refreshLiveDashboard();
     analyzeBtn.disabled = false;
   });
+}
+
+function formatRelativeDate(isoString) {
+  if (!isoString) return "Aucun scan backend";
+  const date = new Date(isoString);
+  if (Number.isNaN(date.getTime())) return "Aucun scan backend";
+  return "Dernier scan: " + date.toLocaleString("fr-FR", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
+}
+
+function renderRecentScans(items) {
+  const list = document.getElementById("recentScansList");
+  if (!items || items.length === 0) {
+    list.innerHTML = "<p class=\"live-feed-empty\">Les scans effectues via l'API apparaitront ici.</p>";
+    return;
+  }
+
+  list.innerHTML = items.map(item => {
+    const levelClass = item.level || "warn";
+    const dateLabel = new Date(item.timestamp).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const sourceUrl = item.normalized_url || item.raw_url || "Lien inconnu";
+    const urlLabel = sourceUrl.length > 54 ? sourceUrl.slice(0, 51) + "..." : sourceUrl;
+
+    return `
+      <div class="live-feed-item level-${levelClass}">
+        <div class="live-feed-main">
+          <div class="live-feed-url">${urlLabel}</div>
+          <div class="live-feed-meta">${item.verdict || "Analyse"} - ${dateLabel}</div>
+        </div>
+        <div class="live-feed-score">${item.score ?? 0}</div>
+      </div>
+    `;
+  }).join("");
+}
+
+async function refreshLiveDashboard() {
+  const [stats, recent] = await Promise.all([
+    fetchBackendJSON("/stats"),
+    fetchBackendJSON("/recent-scans")
+  ]);
+
+  const statusEl = document.getElementById("dashboardStatus");
+  if (!statusEl) return;
+
+  if (!stats || !recent) {
+    statusEl.textContent = "Backend indisponible";
+    statusEl.classList.add("is-offline");
+    return;
+  }
+
+  statusEl.textContent = "Connecte";
+  statusEl.classList.remove("is-offline");
+  document.getElementById("statsTotalScans").textContent = stats.total_scans ?? 0;
+  document.getElementById("statsAverageScore").textContent = stats.average_score ?? 0;
+  document.getElementById("statsDangerScans").textContent = stats.danger_scans ?? 0;
+  document.getElementById("statsBackendEnriched").textContent = stats.source_totals?.backend_enriched ?? 0;
+  document.getElementById("statsLatestScan").textContent = formatRelativeDate(stats.latest_scan_at);
+  renderRecentScans(recent.items || []);
 }
 
 function clearHistory() {
@@ -607,3 +687,5 @@ function showToast(message, level = "safe") {
 
 updateHistoryCount();
 updateVTDot();
+refreshLiveDashboard();
+setInterval(refreshLiveDashboard, 30000);

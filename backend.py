@@ -7,6 +7,7 @@ from backend_app.services.scan_service import (
     fetch_page_content,
     get_whois_info,
 )
+from backend_app.services.storage import read_scan_events, summarize_scan_events
 
 __all__ = [
     "ALLOWED_ORIGINS",
@@ -18,4 +19,6 @@ __all__ = [
     "check_ssl",
     "fetch_page_content",
     "get_whois_info",
+    "read_scan_events",
+    "summarize_scan_events",
 ]

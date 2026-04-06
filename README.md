@@ -80,6 +80,8 @@ Then open [index.html](/e:/SITE/index.html) in your browser.
 
 - `POST /scan`
 - `GET /health`
+- `GET /stats`
+- `GET /recent-scans`
 
 ## Testing
 

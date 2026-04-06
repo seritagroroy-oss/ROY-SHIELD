@@ -153,6 +153,43 @@
           <span class="stat-label">Taux de détection</span>
         </div>
       </div>
+
+      <section class="live-dashboard" id="liveDashboard">
+        <div class="live-dashboard-header">
+          <div>
+            <p class="live-dashboard-kicker">ActivitÃ© backend</p>
+            <h2 class="live-dashboard-title">Tableau de bord des scans</h2>
+          </div>
+          <span class="live-dashboard-status" id="dashboardStatus">Connexion...</span>
+        </div>
+        <div class="live-dashboard-grid">
+          <div class="live-metric-card">
+            <span class="live-metric-label">Scans total</span>
+            <strong class="live-metric-value" id="statsTotalScans">0</strong>
+          </div>
+          <div class="live-metric-card">
+            <span class="live-metric-label">Risque moyen</span>
+            <strong class="live-metric-value" id="statsAverageScore">0</strong>
+          </div>
+          <div class="live-metric-card">
+            <span class="live-metric-label">Liens dangereux</span>
+            <strong class="live-metric-value danger" id="statsDangerScans">0</strong>
+          </div>
+          <div class="live-metric-card">
+            <span class="live-metric-label">Scans enrichis</span>
+            <strong class="live-metric-value" id="statsBackendEnriched">0</strong>
+          </div>
+        </div>
+        <div class="live-dashboard-feed">
+          <div class="live-feed-header">
+            <h3>Scans rÃ©cents</h3>
+            <span id="statsLatestScan">Aucun scan backend</span>
+          </div>
+          <div class="live-feed-list" id="recentScansList">
+            <p class="live-feed-empty">Les scans effectuÃ©s via l'API apparaÃ®tront ici.</p>
+          </div>
+        </div>
+      </section>
     </section>
 
     <!-- Section résultat unique -->

@@ -22,6 +22,7 @@ from backend_app.constants import (
     TRUSTED_DOMAINS,
     URL_SHORTENERS,
 )
+from backend_app.services.storage import append_scan_event
 
 
 def levenshtein(a: str, b: str) -> int:
@@ -238,6 +239,20 @@ def _apply_final_verdict(result: dict) -> dict:
         result["verdict"] = "Site fiable"
         result["level"] = "safe"
     return result
+
+
+def _build_scan_event(result: dict, raw_url: str, hostname: str) -> dict:
+    return {
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "raw_url": raw_url.strip(),
+        "normalized_url": result["url"],
+        "hostname": hostname,
+        "score": result["score"],
+        "level": result["level"],
+        "verdict": result["verdict"],
+        "content_analyzed": result.get("content_analyzed", False),
+        "signal_count": len(result.get("python_signals", [])),
+    }
 
 
 async def analyze_scan(raw_url: str) -> dict:
@@ -497,4 +512,6 @@ async def analyze_scan(raw_url: str) -> dict:
             }
         )
 
-    return _apply_final_verdict(result)
+    result = _apply_final_verdict(result)
+    append_scan_event(_build_scan_event(result, raw_url, hostname))
+    return result

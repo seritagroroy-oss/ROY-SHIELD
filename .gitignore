@@ -20,6 +20,7 @@ htmlcov/
 
 dist/
 build/
+logs/
 
 Thumbs.db
 Desktop.ini
