@@ -10,7 +10,9 @@ let currentResult = null;
 let currentRawUrl = "";
 
 // URL du backend Python — à remplacer par l'URL Render après déploiement
-const BACKEND_URL = "https://roy-shield-api.onrender.com";
+const BACKEND_URL =
+  window.ROY_SHIELD_CONFIG?.backendUrl ||
+  "http://127.0.0.1:8000";
 
 async function callPythonBackend(url) {
   try {

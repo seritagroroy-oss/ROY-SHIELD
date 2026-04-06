@@ -1,87 +1,107 @@
 # ROY SHIELD
 
-ROY SHIELD est un detecteur d'arnaques web avec une interface frontend moderne et une API Python pour analyser les liens suspects.
+ROY SHIELD is a phishing and scam detection tool focused on fast URL analysis. It combines frontend heuristics, backend enrichment, and optional VirusTotal checks to help users evaluate suspicious links before interacting with them.
 
-## Fonctionnalites
+## Highlights
 
-- Analyse de liens suspects
-- Detection de signaux de phishing et de typosquatting
-- Verification de contenu HTML et de formulaires
-- Analyse WHOIS, SSL et redirections
-- Interface web simple pour scanner des URLs ou du texte
+- Multi-engine URL risk scoring
+- Suspicious keyword detection
+- Free-hosting and risky TLD detection
+- Typo-squatting checks for common brands
+- WHOIS and SSL enrichment from the FastAPI backend
+- HTML content inspection for phishing signals
+- Optional VirusTotal integration in the browser
+- Local scan history and report export
 
-## Fichiers principaux
+## Stack
 
-- `index.html` : interface principale
-- `style.css` : styles de l'application
-- `app.js` : logique frontend
-- `analyzer.js` : logique d'analyse cote client
-- `backend.py` : API FastAPI
-- `requirements.txt` : dependances Python
+- Frontend: `index.html`, `style.css`, `app.js`, `analyzer.js`
+- Backend: FastAPI in [backend.py](/e:/SITE/backend.py)
+- Config: [config.js](/e:/SITE/config.js) and [.env.example](/e:/SITE/.env.example)
+- Tests: [tests/test_backend.py](/e:/SITE/tests/test_backend.py)
+- CI: [.github/workflows/ci.yml](/e:/SITE/.github/workflows/ci.yml)
 
-## Installation
+## Quick start
 
-### 1. Cloner le depot
+Recommended Python version: `3.11`
 
 ```bash
 git clone https://github.com/seritagroroy-oss/ROY-SHIELD.git
 cd ROY-SHIELD
-```
-
-### 2. Creer un environnement virtuel
-
-```bash
 python -m venv .venv
+pip install -r requirements.txt
 ```
 
-Sous Windows PowerShell :
+Windows PowerShell:
 
 ```powershell
 .venv\Scripts\Activate.ps1
 ```
 
-Sous macOS / Linux :
+macOS or Linux:
 
 ```bash
 source .venv/bin/activate
 ```
 
-### 3. Installer les dependances
+## Backend configuration
 
-```bash
-pip install -r requirements.txt
-```
+Copy [.env.example](/e:/SITE/.env.example) to `.env` and adjust values if needed.
 
-## Lancer le backend
+Available variables:
+
+- `ROY_SHIELD_ENV`
+- `ROY_SHIELD_ALLOWED_ORIGINS`
+- `ROY_SHIELD_FETCH_TIMEOUT`
+- `ROY_SHIELD_SSL_TIMEOUT`
+
+Run the API locally:
 
 ```bash
 uvicorn backend:app --reload
 ```
 
-Le serveur demarre par defaut sur `http://127.0.0.1:8000`.
+## Frontend configuration
 
-## Ouvrir le frontend
+Edit [config.js](/e:/SITE/config.js) to point the UI to the backend you want to use.
 
-Ouvrez `index.html` dans le navigateur.
+Example:
 
-Si le frontend doit appeler l'API localement, laissez le backend en cours d'execution pendant les tests.
+```js
+window.ROY_SHIELD_CONFIG = {
+  backendUrl: "http://127.0.0.1:8000"
+};
+```
+
+Then open [index.html](/e:/SITE/index.html) in your browser.
 
 ## API
 
-Documentation FastAPI automatique disponible ici une fois le serveur lance :
+- `POST /scan`
+- `GET /health`
 
-- `http://127.0.0.1:8000/docs`
-- `http://127.0.0.1:8000/redoc`
+## Testing
 
-## Dependance principales
+Run backend tests locally with:
 
-- FastAPI
-- Uvicorn
-- HTTPX
-- BeautifulSoup
-- python-whois
-- tldextract
+```bash
+pytest
+```
 
-## Auteur
+GitHub Actions runs the same backend test suite on pushes and pull requests to `main`.
 
-Projet publie sur GitHub : https://github.com/seritagroroy-oss/ROY-SHIELD
+## Roadmap
+
+- [x] Browser-based scam scanner
+- [x] Python backend enrichment
+- [x] VirusTotal integration
+- [x] Basic automated tests
+- [x] GitHub Actions CI
+- [ ] Structured scan logging
+- [ ] Dashboard metrics
+- [ ] Public demo assets
+- [ ] Community reporting backend
+
+## Note
+
+ROY SHIELD is a decision-support tool, not a guarantee. Always verify sensitive requests through official channels before sharing credentials, payment details, or personal data.
