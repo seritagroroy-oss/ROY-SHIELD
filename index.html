@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ROY SHIELD — Détecteur d'arnaques</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+</head>
+<body>
+  <div class="bg-grid"></div>
+  <div class="bg-glow" id="bgGlow"></div>
+
+  <header class="header">
+    <div class="logo">
+      <div class="shield-icon">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.2"/>
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="logo-text">ROY<span>SHIELD</span></span>
+    </div>
+    <nav class="nav">
+      <a href="#" class="nav-link active">Scanner</a>
+      <a href="#how" class="nav-link">Comment ça marche</a>
+      <a href="#tips" class="nav-link">Conseils</a>
+      <button class="nav-btn-history" id="historyToggleBtn" title="Historique">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <span>Historique</span>
+        <span class="history-count" id="historyCount" style="display:none">0</span>
+      </button>
+      <button class="nav-btn-vt" id="vtSettingsBtn" title="Clé VirusTotal">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+        </svg>
+        <span>VirusTotal</span>
+        <span class="vt-dot" id="vtDot"></span>
+      </button>
+    </nav>
+  </header>
+
+  <main>
+    <section class="hero">
+      <div class="hero-badge">
+        <span class="pulse-dot"></span>
+        Protection intelligente en temps réel
+      </div>
+      <h1 class="hero-title">
+        Détectez les arnaques<br/>
+        <span class="gradient-text">avant qu'elles ne vous détectent</span>
+      </h1>
+      <p class="hero-subtitle">
+        Analysez n'importe quel lien en quelques secondes grâce à notre moteur d'intelligence combinant
+        analyse de domaine, détection de mots-clés suspects et scoring avancé.
+      </p>
+
+      <!-- Tabs : URL / Texte brut -->
+      <div class="scan-tabs">
+        <button class="scan-tab active" id="tabUrl" onclick="switchTab('url')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          Scanner un lien
+        </button>
+        <button class="scan-tab" id="tabText" onclick="switchTab('text')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+          Scanner un texte
+        </button>
+      </div>
+
+      <!-- Panel URL -->
+      <div class="scanner-box" id="panelUrl">
+        <div class="scanner-inner">
+          <div class="scanner-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+            </svg>
+          </div>
+          <input
+            type="text"
+            id="urlInput"
+            class="scanner-input"
+            placeholder="Collez un lien suspect ici… ex: https://recrutement-urgent.netlify.app"
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button class="scanner-btn" id="analyzeBtn">
+            <span class="btn-text">Analyser</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+        <!-- #5 Jauge temps réel -->
+        <div class="realtime-bar-wrap" id="realtimeBarWrap" style="display:none">
+          <div class="realtime-bar-track">
+            <div class="realtime-bar-fill" id="realtimeBarFill"></div>
+          </div>
+          <span class="realtime-label" id="realtimeLabel"></span>
+        </div>
+        <p class="scanner-hint">Appuyez sur Entrée ou cliquez sur Analyser</p>
+      </div>
+
+      <!-- Panel Texte brut -->
+      <div class="scanner-box hidden" id="panelText">
+        <div class="scanner-text-inner">
+          <textarea
+            id="textInput"
+            class="scanner-textarea"
+            placeholder="Collez ici un message WhatsApp, SMS ou email suspect…&#10;&#10;Exemple :&#10;Félicitations ! Vous avez gagné un téléphone. Cliquez ici : https://mtn-ci-promo.netlify.app/gagne"
+            rows="5"
+            spellcheck="false"
+          ></textarea>
+        </div>
+        <div class="scanner-text-footer">
+          <span class="text-found-count" id="textFoundCount">Collez un texte pour extraire les liens</span>
+          <button class="scanner-btn" id="analyzeTextBtn">
+            <span class="btn-text">Extraire et analyser</span>
+            <span class="btn-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <div class="stats-row">
+        <div class="stat">
+          <span class="stat-num">6</span>
+          <span class="stat-label">Moteurs d'analyse</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-num">100+</span>
+          <span class="stat-label">Signaux détectés</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-num">25+</span>
+          <span class="stat-label">Arnaques CI connues</span>
+        </div>
+        <div class="stat-sep"></div>
+        <div class="stat">
+          <span class="stat-num">95%</span>
+          <span class="stat-label">Taux de détection</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section résultat unique -->
+    <section id="resultSection" class="result-section hidden">
+      <div class="result-card" id="resultCard">
+        <div class="result-header">
+          <div class="result-icon-wrap" id="resultIconWrap">
+            <div class="result-icon" id="resultIcon"></div>
+          </div>
+          <div class="result-title-block">
+            <h2 class="result-verdict" id="resultVerdict"></h2>
+            <p class="result-url" id="resultUrl"></p>
+          </div>
+          <div class="result-score-circle" id="resultScoreCircle">
+            <svg viewBox="0 0 100 100" class="score-svg">
+              <circle cx="50" cy="50" r="42" class="score-track"/>
+              <circle cx="50" cy="50" r="42" class="score-fill" id="scoreArc"/>
+            </svg>
+            <div class="score-number" id="scoreNumber">0</div>
+            <div class="score-label">risque</div>
+          </div>
+        </div>
+
+        <div class="score-bar-wrap">
+          <div class="score-bar-bg">
+            <div class="score-bar-fill" id="scoreBarFill"></div>
+            <div class="score-bar-marker" id="scoreMarker"></div>
+          </div>
+          <div class="score-bar-labels">
+            <span>Fiable</span>
+            <span>Suspect</span>
+            <span>Arnaque</span>
+          </div>
+        </div>
+
+        <!-- VirusTotal status dans résultat -->
+        <div class="vt-result-wrap hidden" id="vtResultWrap">
+          <div class="vt-result-inner" id="vtResultInner">
+            <div class="vt-spinner" id="vtSpinner"></div>
+            <span id="vtResultText">Vérification VirusTotal en cours…</span>
+          </div>
+        </div>
+
+        <div class="result-details">
+          <h3 class="details-title">Analyse détaillée</h3>
+          <div class="signals-grid" id="signalsGrid"></div>
+        </div>
+
+        <div class="result-footer">
+          <button class="export-btn" id="exportBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+            </svg>
+            Exporter le rapport
+          </button>
+          <button class="report-btn" id="reportBtn">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+              <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+            </svg>
+            Signaler ce lien
+          </button>
+          <button class="reset-btn" onclick="resetScanner()">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 4v6h6M23 20v-6h-6"/>
+              <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+            </svg>
+            Nouveau scan
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Section résultats multi-liens (texte brut) -->
+    <section id="multiResultSection" class="multi-result-section hidden">
+      <div class="multi-result-header">
+        <h2 class="multi-result-title">Résultats d'analyse du texte</h2>
+        <span class="multi-result-count" id="multiResultCount"></span>
+      </div>
+      <div class="multi-results-list" id="multiResultsList"></div>
+      <div class="multi-result-footer">
+        <button class="reset-btn" onclick="resetScanner()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6M23 20v-6h-6"/>
+            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"/>
+          </svg>
+          Nouveau scan
+        </button>
+      </div>
+    </section>
+
+    <section id="how" class="how-section">
+      <h2 class="section-title">Comment ça marche</h2>
+      <p class="section-sub">6 moteurs d'analyse combinés pour une détection maximale</p>
+      <div class="engines-grid">
+        <div class="engine-card">
+          <div class="engine-icon" style="--clr: #6366f1">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/>
+              <path d="M12 2C6.5 2 4 12 4 12s2.5 10 8 10M12 2c5.5 0 8 10 8 10s-2.5 10-8 10"/>
+            </svg>
+          </div>
+          <h3>Analyse du domaine</h3>
+          <p>Détecte les domaines gratuits suspects (netlify, github.io, weebly…), les TLDs risqués et les noms de domaine trompeurs.</p>
+        </div>
+        <div class="engine-card">
+          <div class="engine-icon" style="--clr: #ec4899">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+            </svg>
+          </div>
+          <h3>Analyse des mots-clés</h3>
+          <p>Scanne l'URL à la recherche de mots suspects : urgent, paiement, recrutement, frais, gagner, promo, offre…</p>
+        </div>
+        <div class="engine-card">
+          <div class="engine-icon" style="--clr: #f59e0b">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+          </div>
+          <h3>Score de risque</h3>
+          <p>Un algorithme attribue un score de 0 à 100 basé sur 15+ critères. Chaque signal ajoute des points de risque.</p>
+        </div>
+        <div class="engine-card">
+          <div class="engine-icon" style="--clr: #10b981">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+            </svg>
+          </div>
+          <h3>Vérification structurelle</h3>
+          <p>Vérifie HTTPS, la structure de l'URL, les redirections suspectes, les sous-domaines abusifs et les URL raccourcies.</p>
+        </div>
+        <div class="engine-card">
+          <div class="engine-icon" style="--clr: #f97316">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+              <circle cx="9" cy="7" r="4"/>
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/>
+            </svg>
+          </div>
+          <h3>Typosquatting</h3>
+          <p>Compare le domaine avec 13 grandes marques connues. Détecte les imitations proches (paypa1.com, mtn-ci…) via Levenshtein.</p>
+        </div>
+        <div class="engine-card">
+          <div class="engine-icon" style="--clr: #06b6d4">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+              <ellipse cx="12" cy="5" rx="9" ry="3"/>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/>
+            </svg>
+          </div>
+          <h3>Base africaine CI</h3>
+          <p>25+ patterns d'arnaques spécifiques à la Côte d'Ivoire et à l'Afrique : faux concours MTN/Orange, faux recrutements Abidjan, usurpations CNPS…</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="tips" class="tips-section">
+      <h2 class="section-title">Conseils de sécurité</h2>
+      <p class="section-sub">Protégez-vous au quotidien</p>
+      <div class="tips-grid">
+        <div class="tip-card tip-danger">
+          <div class="tip-icon">&#9888;</div>
+          <h4>Signes d'alerte</h4>
+          <ul>
+            <li>Lien envoyé sans contexte</li>
+            <li>Urgence dans le message</li>
+            <li>Demande de paiement en avance</li>
+            <li>Fautes d'orthographe dans l'URL</li>
+          </ul>
+        </div>
+        <div class="tip-card tip-warn">
+          <div class="tip-icon">&#128270;</div>
+          <h4>Vérifiez toujours</h4>
+          <ul>
+            <li>L'URL commence par https://</li>
+            <li>Le domaine correspond au vrai site</li>
+            <li>Pas de sous-domaine suspect</li>
+            <li>Le site a des mentions légales</li>
+          </ul>
+        </div>
+        <div class="tip-card tip-safe">
+          <div class="tip-icon">&#128274;</div>
+          <h4>Bonnes pratiques</h4>
+          <ul>
+            <li>Ne cliquez jamais sans vérifier</li>
+            <li>Tapez l'URL directement si possible</li>
+            <li>Signalez les arnaques reçues</li>
+            <li>Informez votre entourage</li>
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-logo">
+      <div class="shield-icon small">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.2"/>
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          <path d="M9 12l2 2 4-4" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span>ROY SHIELD</span>
+    </div>
+    <p class="footer-text">Protection intelligente contre les arnaques et le phishing.</p>
+    <p class="footer-disclaimer">Cet outil est fourni à titre indicatif. Aucun scanner ne garantit une détection à 100%.</p>
+  </footer>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay hidden" id="loadingOverlay">
+    <div class="loading-card">
+      <div class="loading-shield">
+        <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.15"/>
+          <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        </svg>
+        <div class="loading-scan-line"></div>
+      </div>
+      <p class="loading-text" id="loadingText">Analyse en cours…</p>
+      <div class="loading-steps">
+        <div class="loading-step" id="lstep1"><span class="step-dot"></span>Analyse du domaine</div>
+        <div class="loading-step" id="lstep2"><span class="step-dot"></span>Détection des mots-clés</div>
+        <div class="loading-step" id="lstep3"><span class="step-dot"></span>Calcul du score de risque</div>
+        <div class="loading-step" id="lstep4"><span class="step-dot"></span>Vérification structurelle</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panneau historique -->
+  <div class="side-panel hidden" id="historyPanel">
+    <div class="side-panel-header">
+      <h3>Historique des scans</h3>
+      <div class="side-panel-actions">
+        <button class="panel-clear-btn" onclick="clearHistory()">Effacer</button>
+        <button class="panel-close-btn" onclick="closeHistoryPanel()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div class="history-list" id="historyList">
+      <p class="history-empty">Aucun scan effectué.</p>
+    </div>
+  </div>
+  <div class="side-panel-overlay hidden" id="panelOverlay" onclick="closeHistoryPanel()"></div>
+
+  <!-- Modal VirusTotal -->
+  <div class="modal-overlay hidden" id="vtModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Intégration VirusTotal</h3>
+        <button class="panel-close-btn" onclick="closeVTModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Ajoutez votre clé API VirusTotal gratuite (500 requêtes/jour) pour enrichir chaque analyse avec une vérification externe réelle.</p>
+        <a class="modal-link" href="https://www.virustotal.com/gui/join-us" target="_blank" rel="noopener">Obtenir une clé gratuite →</a>
+        <div class="modal-field">
+          <label>Clé API VirusTotal</label>
+          <div class="modal-input-wrap">
+            <input type="password" id="vtKeyInput" placeholder="Collez votre clé API ici…" autocomplete="off" spellcheck="false" />
+            <button class="modal-eye-btn" id="vtEyeBtn" onclick="toggleVTKeyVisibility()">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" id="vtEyeIcon">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-save-btn" onclick="saveVTKey()">Enregistrer</button>
+          <button class="modal-remove-btn" id="vtRemoveBtn" onclick="removeVTKey()" style="display:none">Supprimer la clé</button>
+        </div>
+        <p class="modal-note">La clé est stockée uniquement dans votre navigateur (localStorage). Elle n'est jamais envoyée à nos serveurs.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Signaler un lien -->
+  <div class="modal-overlay hidden" id="reportModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>Signaler ce lien</h3>
+        <button class="panel-close-btn" onclick="closeReportModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Vous pensez que ce lien est une arnaque ? Signalez-le pour enrichir la base de données communautaire.</p>
+        <div class="modal-field">
+          <label>Lien signalé</label>
+          <input type="text" id="reportUrl" readonly />
+        </div>
+        <div class="modal-field">
+          <label>Type d'arnaque</label>
+          <select id="reportType" class="modal-select">
+            <option value="phishing">Phishing / Vol de données</option>
+            <option value="recrutement">Faux recrutement</option>
+            <option value="concours">Faux concours / Gain</option>
+            <option value="paiement">Arnaque au paiement</option>
+            <option value="usurpation">Usurpation d'identité</option>
+            <option value="autre">Autre</option>
+          </select>
+        </div>
+        <div class="modal-field">
+          <label>Commentaire (optionnel)</label>
+          <textarea id="reportComment" class="modal-textarea" placeholder="Décrivez brièvement l'arnaque…" rows="3"></textarea>
+        </div>
+        <div class="modal-actions">
+          <button class="modal-save-btn" onclick="submitReport()">Envoyer le signalement</button>
+        </div>
+        <p class="modal-note">Les signalements sont sauvegardés localement et peuvent aider à améliorer la détection future.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast notification -->
+  <div class="toast hidden" id="toast"></div>
+
+  <!-- Modal plein écran Rapport de scan -->
+  <div class="scan-report-modal hidden" id="scanReportModal">
+    <div class="sr-topbar">
+      <div class="sr-topbar-left">
+        <div class="shield-icon" style="width:28px;height:28px;color:var(--primary)">
+          <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" fill="currentColor" opacity="0.2"/>
+            <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="sr-topbar-title">Rapport d'analyse — ROY SHIELD</span>
+        <span class="sr-py-badge hidden" id="srPyBadge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">
+            <polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>
+          </svg>
+          Analyse Python active
+        </span>
+        <span class="sr-content-badge hidden" id="srContentBadge">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:12px;height:12px">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+          </svg>
+          Contenu analysé
+        </span>
+      </div>
+      <div class="sr-topbar-actions">
+        <button class="sr-export-btn" onclick="exportReport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Exporter
+        </button>
+        <button class="sr-report-flag-btn" onclick="openReportModal()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+          Signaler
+        </button>
+        <button class="sr-new-scan-btn" onclick="closeScanReport()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+          Fermer
+        </button>
+      </div>
+    </div>
+
+    <div class="sr-body">
+      <div class="sr-hero">
+        <div class="sr-hero-icon" id="srIcon">✅</div>
+        <div class="sr-hero-center">
+          <h2 class="sr-verdict" id="srVerdict">Site fiable</h2>
+          <p class="sr-url" id="srUrl"></p>
+        </div>
+        <div class="sr-score-wrap">
+          <div class="sr-score-num" id="srScore">0</div>
+          <div class="sr-score-max">/ 100</div>
+          <div class="sr-score-label">score de risque</div>
+        </div>
+      </div>
+
+      <div class="sr-scorebar-wrap">
+        <div class="sr-scorebar-track">
+          <div class="sr-scorebar-fill" id="srScoreBar"></div>
+        </div>
+        <div class="sr-scorebar-labels">
+          <span>0 — Fiable</span>
+          <span>30 — Suspect</span>
+          <span>60 — Arnaque</span>
+          <span>100</span>
+        </div>
+      </div>
+
+      <div class="sr-grid">
+        <div class="sr-col sr-col-left">
+          <div class="sr-section">
+            <h3 class="sr-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/>
+                <line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>
+              </svg>
+              Signaux détectés
+            </h3>
+            <div class="sr-signals-list" id="srSignals"></div>
+          </div>
+        </div>
+
+        <div class="sr-col sr-col-right">
+          <div class="sr-section" id="srWhoisSection">
+            <h3 class="sr-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                <circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 1 0 20M2 12h20"/>
+              </svg>
+              Informations WHOIS
+            </h3>
+            <div class="sr-meta-grid" id="srWhois"></div>
+          </div>
+
+          <div class="sr-section" id="srSslSection">
+            <h3 class="sr-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+              Certificat SSL
+            </h3>
+            <div class="sr-meta-grid" id="srSsl"></div>
+          </div>
+
+          <div class="sr-section sr-vt-section" id="srVtSectionWrap">
+            <h3 class="sr-section-title">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px">
+                <circle cx="12" cy="12" r="3"/>
+                <path d="M19.07 4.93a10 10 0 0 1 0 14.14M4.93 4.93a10 10 0 0 0 0 14.14"/>
+              </svg>
+              VirusTotal
+            </h3>
+            <div class="vt-result-wrap hidden" id="srVtResultWrap">
+              <div class="vt-result-inner" id="srVtResultInner">
+                <div class="vt-spinner" id="srVtSpinner"></div>
+                <span id="srVtResultText">Vérification VirusTotal en cours…</span>
+              </div>
+            </div>
+            <p class="sr-vt-hint" id="srVtHint">Configurez votre clé VirusTotal dans la barre de navigation pour activer cette vérification.</p>
+          </div>
+
+          <div class="sr-section sr-legend">
+            <h3 class="sr-section-title">Légende</h3>
+            <div class="sr-legend-items">
+              <div class="sr-legend-item"><span class="sr-legend-dot safe"></span>Signal positif</div>
+              <div class="sr-legend-item"><span class="sr-legend-dot warn"></span>Point d'attention</div>
+              <div class="sr-legend-item"><span class="sr-legend-dot danger"></span>Alerte critique</div>
+              <div class="sr-legend-item"><span class="sr-py-tag" style="font-size:0.7rem">Python</span>Analyse serveur</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="sr-disclaimer">
+        Cet outil est fourni à titre indicatif. Aucun scanner ne garantit une détection à 100%.
+      </div>
+    </div>
+  </div>
+
+  <script src="analyzer.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
