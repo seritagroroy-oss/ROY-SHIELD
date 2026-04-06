@@ -393,6 +393,7 @@ main, header, footer, section {
   border: 1px solid var(--border);
   border-radius: 18px;
   padding: 18px;
+  margin-top: 16px;
 }
 
 .live-feed-header {
@@ -471,6 +472,10 @@ main, header, footer, section {
 .live-feed-empty {
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+.reports-feed .live-feed-score {
+  min-width: 72px;
 }
 
 @media (max-width: 900px) {

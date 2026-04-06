@@ -1,6 +1,6 @@
 # ROY SHIELD
 
-ROY SHIELD is a phishing and scam detection tool focused on fast URL analysis. It combines frontend heuristics, backend enrichment, and optional VirusTotal checks to help users evaluate suspicious links before interacting with them.
+ROY SHIELD is a phishing and scam detection platform focused on fast URL analysis, operator review, and actionable security signals. It combines frontend heuristics, backend enrichment, community reporting, and persistent analytics to help users evaluate suspicious links before interacting with them.
 
 ## Highlights
 
@@ -11,7 +11,9 @@ ROY SHIELD is a phishing and scam detection tool focused on fast URL analysis. I
 - WHOIS and SSL enrichment from the FastAPI backend
 - HTML content inspection for phishing signals
 - Optional VirusTotal integration in the browser
-- Local scan history and report export
+- Persistent scan and report storage with SQLite
+- Live dashboard for recent scans, risk levels, and community reports
+- Local history and export-friendly reporting flow
 
 ## Stack
 
@@ -82,6 +84,9 @@ Then open [index.html](/e:/SITE/index.html) in your browser.
 - `GET /health`
 - `GET /stats`
 - `GET /recent-scans`
+- `POST /reports`
+- `GET /reports/recent`
+- `GET /reports/stats`
 
 ## Testing
 
@@ -100,10 +105,13 @@ GitHub Actions runs the same backend test suite on pushes and pull requests to `
 - [x] VirusTotal integration
 - [x] Basic automated tests
 - [x] GitHub Actions CI
-- [ ] Structured scan logging
-- [ ] Dashboard metrics
+- [x] Persistent storage for scans and reports
+- [x] Dashboard metrics and recent activity feeds
+- [x] Community reporting backend
 - [ ] Public demo assets
-- [ ] Community reporting backend
+- [ ] Shareable scan report pages
+- [ ] Authentication and saved analyst workspaces
+- [ ] Alerting and notification channels
 
 ## Note
 

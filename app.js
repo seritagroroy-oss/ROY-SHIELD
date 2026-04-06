@@ -450,9 +450,10 @@ function renderRecentScans(items) {
 }
 
 async function refreshLiveDashboard() {
-  const [stats, recent] = await Promise.all([
+  const [stats, recent, recentReports] = await Promise.all([
     fetchBackendJSON("/stats"),
-    fetchBackendJSON("/recent-scans")
+    fetchBackendJSON("/recent-scans"),
+    fetchBackendJSON("/reports/recent")
   ]);
 
   const statusEl = document.getElementById("dashboardStatus");
@@ -472,6 +473,44 @@ async function refreshLiveDashboard() {
   document.getElementById("statsBackendEnriched").textContent = stats.source_totals?.backend_enriched ?? 0;
   document.getElementById("statsLatestScan").textContent = formatRelativeDate(stats.latest_scan_at);
   renderRecentScans(recent.items || []);
+  renderRecentReports(recentReports?.items || []);
+
+  const totalReports = stats.reports?.total_reports ?? 0;
+  document.getElementById("reportsSummary").textContent =
+    totalReports > 0 ? `${totalReports} signalement(s)` : "Aucun signalement";
+}
+
+function renderRecentReports(items) {
+  const list = document.getElementById("recentReportsList");
+  if (!list) return;
+
+  if (!items || items.length === 0) {
+    list.innerHTML = '<p class="live-feed-empty">Les signalements vérifiés apparaîtront ici.</p>';
+    return;
+  }
+
+  list.innerHTML = items.map(item => {
+    const levelClass = item.level || "warn";
+    const dateLabel = new Date(item.timestamp).toLocaleString("fr-FR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+    const reportType = item.report_type || "autre";
+    const sourceUrl = item.url || "Lien inconnu";
+    const urlLabel = sourceUrl.length > 52 ? sourceUrl.slice(0, 49) + "..." : sourceUrl;
+
+    return `
+      <div class="live-feed-item level-${levelClass}">
+        <div class="live-feed-main">
+          <div class="live-feed-url">${urlLabel}</div>
+          <div class="live-feed-meta">${reportType} - ${dateLabel}</div>
+        </div>
+        <div class="live-feed-score">${item.score ?? "-"}</div>
+      </div>
+    `;
+  }).join("");
 }
 
 function clearHistory() {
@@ -648,27 +687,49 @@ function closeReportModal() {
   document.getElementById("reportModal").classList.add("hidden");
 }
 
-function submitReport() {
+async function submitReport() {
   const url = document.getElementById("reportUrl").value;
   const type = document.getElementById("reportType").value;
   const comment = document.getElementById("reportComment").value.trim();
 
   if (!url) return;
 
-  let reports = [];
-  try { reports = JSON.parse(localStorage.getItem(REPORTS_KEY)) || []; } catch { }
-
-  reports.unshift({
+  const payload = {
     url,
-    type,
+    report_type: type,
     comment,
     score: currentResult ? currentResult.score : null,
-    date: new Date().toISOString()
-  });
+    verdict: currentResult ? currentResult.verdict : null,
+    level: currentResult ? currentResult.level : null
+  };
 
-  localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
-  closeReportModal();
-  showToast("Signalement enregistré. Merci pour votre contribution.", "safe");
+  try {
+    const response = await fetch(BACKEND_URL + "/reports", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    if (!response.ok) throw new Error("report submit failed");
+
+    let reports = [];
+    try { reports = JSON.parse(localStorage.getItem(REPORTS_KEY)) || []; } catch { }
+
+    reports.unshift({
+      url,
+      type,
+      comment,
+      score: currentResult ? currentResult.score : null,
+      date: new Date().toISOString()
+    });
+
+    localStorage.setItem(REPORTS_KEY, JSON.stringify(reports));
+    closeReportModal();
+    refreshLiveDashboard();
+    showToast("Signalement enregistré. Merci pour votre contribution.", "safe");
+  } catch {
+    showToast("Impossible d'envoyer le signalement au backend.", "warn");
+  }
 }
 
 // ─── Toast ─────────────────────────────────────────────────────────────────────

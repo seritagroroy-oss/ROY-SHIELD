@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend_app.services.storage import read_scan_events, summarize_scan_events
+from backend_app.services.storage import read_reports, read_scan_events, summarize_reports, summarize_scan_events
 
 router = APIRouter()
 
@@ -8,7 +8,10 @@ router = APIRouter()
 @router.get("/stats")
 def stats():
     events = read_scan_events()
-    return summarize_scan_events(events)
+    reports = read_reports()
+    payload = summarize_scan_events(events)
+    payload["reports"] = summarize_reports(reports)
+    return payload
 
 
 @router.get("/recent-scans")

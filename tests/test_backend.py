@@ -1,6 +1,7 @@
 from fastapi.testclient import TestClient
 
 import backend
+from backend_app.routes import reports as reports_route
 from backend_app.services import storage
 from backend_app.routes import stats as stats_route
 
@@ -94,3 +95,61 @@ def test_stats_and_recent_scans_endpoints(monkeypatch):
     recent_payload = recent_response.json()
     assert recent_payload["count"] == 1
     assert recent_payload["items"][0]["normalized_url"] == "https://github.com"
+
+
+def test_submit_report_and_report_endpoints(monkeypatch):
+    sample_reports = [
+        {
+            "id": 1,
+            "timestamp": "2026-04-06T18:10:00+00:00",
+            "url": "https://fake-login.test",
+            "report_type": "phishing",
+            "comment": "Collecte d'identifiants",
+            "score": 91,
+            "verdict": "Arnaque probable",
+            "level": "danger",
+        }
+    ]
+
+    monkeypatch.setattr(
+        reports_route,
+        "create_report",
+        lambda payload: {
+            "id": 2,
+            "timestamp": "2026-04-06T18:20:00+00:00",
+            **payload,
+        },
+    )
+    monkeypatch.setattr(storage, "read_reports", lambda limit=None: sample_reports[:limit] if limit else sample_reports)
+    monkeypatch.setattr(reports_route, "read_reports", lambda limit=None: sample_reports[:limit] if limit else sample_reports)
+    monkeypatch.setattr(stats_route, "read_reports", lambda limit=None: sample_reports[:limit] if limit else sample_reports)
+    monkeypatch.setattr(stats_route, "read_scan_events", lambda limit=None: [])
+
+    submit_response = client.post(
+        "/reports",
+        json={
+            "url": "https://fake-login.test",
+            "report_type": "phishing",
+            "comment": "Collecte d'identifiants",
+            "score": 91,
+            "verdict": "Arnaque probable",
+            "level": "danger",
+        },
+    )
+    recent_response = client.get("/reports/recent?limit=1")
+    stats_response = client.get("/reports/stats")
+    global_stats_response = client.get("/stats")
+
+    assert submit_response.status_code == 200
+    assert submit_response.json()["ok"] is True
+
+    assert recent_response.status_code == 200
+    assert recent_response.json()["count"] == 1
+    assert recent_response.json()["items"][0]["report_type"] == "phishing"
+
+    assert stats_response.status_code == 200
+    assert stats_response.json()["total_reports"] == 1
+    assert stats_response.json()["by_type"]["phishing"] == 1
+
+    assert global_stats_response.status_code == 200
+    assert global_stats_response.json()["reports"]["total_reports"] == 1
