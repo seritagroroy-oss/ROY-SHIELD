@@ -226,11 +226,15 @@ def test_share_report_and_shared_report_endpoint(monkeypatch):
         },
     )
     fetch_response = client.get("/shared-reports/share-token")
+    view_response = client.get("/shared-reports/share-token/view")
 
     assert share_response.status_code == 200
     assert share_response.json()["share"]["token"] == "share-token"
     assert fetch_response.status_code == 200
     assert fetch_response.json()["report"]["level"] == "danger"
+    assert view_response.status_code == 200
+    assert "Rapport partagé" in view_response.text
+    assert "fake-login.test" in view_response.text
 
 
 def test_auth_register_login_and_profile(monkeypatch):

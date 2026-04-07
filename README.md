@@ -102,6 +102,7 @@ Then open [index.html](/e:/SITE/index.html) in your browser.
 - `GET /reports/stats`
 - `POST /reports/share`
 - `GET /shared-reports/{token}`
+- `GET /shared-reports/{token}/view`
 - `POST /auth/register`
 - `POST /auth/login`
 - `POST /auth/logout`
@@ -134,7 +135,7 @@ GitHub Actions runs the same backend test suite on pushes and pull requests to `
 - [x] Filterable analytics views
 - [x] API rate limiting and stricter validation
 - [x] Security posture and anomaly alerts
-- [x] Shareable read-only reports
+- [x] Shareable read-only reports with public view page
 - [x] Admin moderation workflow
 - [x] Webhook event notifications
 - [ ] Public demo assets

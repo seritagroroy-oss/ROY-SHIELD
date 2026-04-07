@@ -993,7 +993,7 @@ async function shareCurrentReport() {
     });
     if (!response.ok) throw new Error("share_failed");
     const data = await response.json();
-    const shareUrl = `${BACKEND_URL}/shared-reports/${data.share.token}`;
+    const shareUrl = `${BACKEND_URL}/shared-reports/${data.share.token}/view`;
     target.innerHTML = `
       <div class="workspace-history-item">
         <strong>Lien partageable cree</strong>
