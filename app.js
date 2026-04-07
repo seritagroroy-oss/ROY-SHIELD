@@ -5,11 +5,17 @@ const textInput = document.getElementById("textInput");
 const resultSection = document.getElementById("resultSection");
 const multiResultSection = document.getElementById("multiResultSection");
 const loadingOverlay = document.getElementById("loadingOverlay");
+const micUrlBtn = document.getElementById("micUrlBtn");
+const micTextBtn = document.getElementById("micTextBtn");
 
 let currentResult = null;
 let currentRawUrl = "";
 let authMode = "login";
 let currentUser = null;
+let recognition = null;
+let speechSupported = false;
+let activeMicTarget = null;
+let isListening = false;
 const ADMIN_TOKEN_KEY = "royshield_admin_token";
 
 // URL du backend Python — à remplacer par l'URL Render après déploiement
@@ -72,6 +78,8 @@ document.getElementById("workspaceRefreshBtn").addEventListener("click", refresh
 document.getElementById("workspaceLogoutBtn").addEventListener("click", logoutWorkspace);
 document.getElementById("shareCurrentReportBtn").addEventListener("click", shareCurrentReport);
 document.getElementById("loadAdminReportsBtn").addEventListener("click", loadAdminReports);
+if (micUrlBtn) micUrlBtn.addEventListener("click", () => toggleSpeechInput("url"));
+if (micTextBtn) micTextBtn.addEventListener("click", () => toggleSpeechInput("text"));
 ["dashboardDaysFilter", "dashboardLevelFilter", "dashboardReportTypeFilter"].forEach(id => {
   const element = document.getElementById(id);
   if (element) element.addEventListener("change", refreshLiveDashboard);
@@ -99,6 +107,7 @@ function switchTab(tab) {
   document.getElementById("tabText").classList.toggle("active", tab === "text");
   document.getElementById("panelUrl").classList.toggle("hidden", tab !== "url");
   document.getElementById("panelText").classList.toggle("hidden", tab !== "text");
+  updateMicButtons();
 }
 
 // ─── Text mode ─────────────────────────────────────────────────────────────────
@@ -328,6 +337,7 @@ function buildScanReport(result) {
 }
 
 function resetScanner() {
+  stopSpeechRecognition();
   resultSection.classList.add("hidden");
   multiResultSection.classList.add("hidden");
   document.getElementById("scanReportModal").classList.add("hidden");
@@ -341,6 +351,119 @@ function resetScanner() {
   document.getElementById("bgGlow").style.background = "";
   window.scrollTo({ top: 0, behavior: "smooth" });
   urlInput.focus();
+}
+
+function initSpeechRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  speechSupported = Boolean(SpeechRecognition);
+
+  if (!speechSupported) {
+    updateMicButtons();
+    return;
+  }
+
+  recognition = new SpeechRecognition();
+  recognition.lang = "fr-FR";
+  recognition.interimResults = true;
+  recognition.continuous = false;
+  recognition.maxAlternatives = 1;
+
+  recognition.onstart = () => {
+    isListening = true;
+    updateMicButtons();
+    showToast(activeMicTarget === "text" ? "Micro actif pour la dictée du texte." : "Micro actif pour la dictée du lien.", "safe");
+  };
+
+  recognition.onresult = event => {
+    let transcript = "";
+    for (let i = event.resultIndex; i < event.results.length; i += 1) {
+      transcript += event.results[i][0].transcript;
+    }
+    transcript = transcript.trim();
+    if (!transcript) return;
+
+    if (activeMicTarget === "text") {
+      textInput.value = textInput.value.trim() ? `${textInput.value.trim()} ${transcript}` : transcript;
+      onTextInput();
+    } else {
+      urlInput.value = transcript;
+      urlInput.dispatchEvent(new Event("input"));
+    }
+  };
+
+  recognition.onerror = event => {
+    isListening = false;
+    updateMicButtons();
+    const code = event.error || "unknown";
+    if (code === "not-allowed" || code === "service-not-allowed") {
+      showToast("Permission micro refusee par le navigateur.", "warn");
+    } else if (code === "no-speech") {
+      showToast("Aucune voix detectee. Reessaie en parlant plus pres du micro.", "warn");
+    } else if (code === "audio-capture") {
+      showToast("Aucun micro disponible ou actif sur cet appareil.", "warn");
+    } else {
+      showToast("La reconnaissance vocale a rencontre un probleme.", "warn");
+    }
+  };
+
+  recognition.onend = () => {
+    isListening = false;
+    updateMicButtons();
+  };
+
+  updateMicButtons();
+}
+
+async function toggleSpeechInput(target) {
+  if (!speechSupported || !recognition) {
+    showToast("La dictée vocale n'est pas supportee par ce navigateur.", "warn");
+    return;
+  }
+
+  if (isListening && activeMicTarget === target) {
+    stopSpeechRecognition();
+    return;
+  }
+
+  activeMicTarget = target;
+  try {
+    if (navigator.mediaDevices?.getUserMedia) {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      stream.getTracks().forEach(track => track.stop());
+    }
+    recognition.start();
+  } catch {
+    isListening = false;
+    updateMicButtons();
+    showToast("Impossible d'acceder au micro. Verifie les permissions du navigateur.", "warn");
+  }
+}
+
+function stopSpeechRecognition() {
+  if (recognition && isListening) {
+    recognition.stop();
+  }
+  isListening = false;
+  activeMicTarget = null;
+  updateMicButtons();
+}
+
+function updateMicButtons() {
+  const disabled = !speechSupported;
+  [micUrlBtn, micTextBtn].forEach(btn => {
+    if (!btn) return;
+    btn.disabled = disabled;
+    btn.classList.remove("is-listening");
+  });
+
+  if (disabled) {
+    if (micUrlBtn) micUrlBtn.title = "Dictée vocale non supportee sur ce navigateur";
+    if (micTextBtn) micTextBtn.title = "Dictée vocale non supportee sur ce navigateur";
+    return;
+  }
+
+  if (activeMicTarget === "url" && isListening && micUrlBtn) micUrlBtn.classList.add("is-listening");
+  if (activeMicTarget === "text" && isListening && micTextBtn) micTextBtn.classList.add("is-listening");
 }
 
 // ─── #1 Historique ─────────────────────────────────────────────────────────────
@@ -1219,6 +1342,7 @@ function showToast(message, level = "safe") {
 
 updateHistoryCount();
 updateVTDot();
+initSpeechRecognition();
 switchAuthTab("login");
 updateWorkspaceUI();
 refreshWorkspace();

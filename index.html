@@ -97,6 +97,14 @@
             autocomplete="off"
             spellcheck="false"
           />
+          <button class="scanner-mic-btn" id="micUrlBtn" type="button" title="Dicter un lien" aria-label="Dicter un lien">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+          </button>
           <button class="scanner-btn" id="analyzeBtn">
             <span class="btn-text">Analyser</span>
             <span class="btn-icon">
@@ -127,8 +135,16 @@
             spellcheck="false"
           ></textarea>
         </div>
-        <div class="scanner-text-footer">
+      <div class="scanner-text-footer">
           <span class="text-found-count" id="textFoundCount">Collez un texte pour extraire les liens</span>
+          <button class="scanner-mic-btn" id="micTextBtn" type="button" title="Dicter un texte suspect" aria-label="Dicter un texte suspect">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M12 3a3 3 0 0 0-3 3v6a3 3 0 0 0 6 0V6a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="22"/>
+              <line x1="8" y1="22" x2="16" y2="22"/>
+            </svg>
+          </button>
           <button class="scanner-btn" id="analyzeTextBtn">
             <span class="btn-text">Extraire et analyser</span>
             <span class="btn-icon">
