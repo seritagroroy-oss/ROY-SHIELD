@@ -25,10 +25,10 @@
       <span class="logo-text">ROY<span>SHIELD</span></span>
     </div>
     <nav class="nav">
-      <a href="#" class="nav-link active">Scanner</a>
-      <a href="#analytics" class="nav-link">Analytics</a>
-      <a href="#how" class="nav-link">Comment ça marche</a>
-      <a href="#tips" class="nav-link">Conseils</a>
+      <a href="#scanner" class="nav-link active" data-section="scanner">Scanner</a>
+      <a href="#analytics" class="nav-link" data-section="analytics">Analytics</a>
+      <a href="#workspace" class="nav-link" data-section="workspace">Workspace</a>
+      <a href="#how" class="nav-link">Guide</a>
       <button class="nav-btn-workspace" id="workspaceBtn" title="Workspace analyste">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
@@ -55,7 +55,7 @@
   </header>
 
   <main>
-    <section class="hero">
+    <section class="hero app-section is-active" id="scannerSection" data-section="scanner">
       <div class="hero-badge">
         <span class="pulse-dot"></span>
         Protection intelligente en temps réel
@@ -68,6 +68,20 @@
         Analysez n'importe quel lien en quelques secondes grâce à notre moteur d'intelligence combinant
         analyse de domaine, détection de mots-clés suspects et scoring avancé.
       </p>
+      <div class="hero-mini-grid">
+        <div class="hero-mini-card">
+          <span class="hero-mini-label">Usage principal</span>
+          <strong class="hero-mini-value">Scanner et décider vite</strong>
+        </div>
+        <div class="hero-mini-card">
+          <span class="hero-mini-label">Mode rapide</span>
+          <strong class="hero-mini-value">Lien, texte ou dictée micro</strong>
+        </div>
+        <div class="hero-mini-card">
+          <span class="hero-mini-label">Enrichissement</span>
+          <strong class="hero-mini-value">Backend, VirusTotal, historique</strong>
+        </div>
+      </div>
 
       <!-- Tabs : URL / Texte brut -->
       <div class="scan-tabs">
@@ -156,28 +170,20 @@
         </div>
       </div>
 
-      <div class="stats-row">
-        <div class="stat">
-          <span class="stat-num">6</span>
-          <span class="stat-label">Moteurs d'analyse</span>
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat">
-          <span class="stat-num">100+</span>
-          <span class="stat-label">Signaux détectés</span>
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat">
-          <span class="stat-num">25+</span>
-          <span class="stat-label">Arnaques CI connues</span>
-        </div>
-        <div class="stat-sep"></div>
-        <div class="stat">
-          <span class="stat-num">95%</span>
-          <span class="stat-label">Taux de détection</span>
-        </div>
+      <div class="scanner-actions-bar">
+        <button class="workspace-secondary-btn" type="button" data-section-switch="analytics">Ouvrir les analytics</button>
+        <button class="workspace-secondary-btn" type="button" data-section-switch="workspace">Ouvrir le workspace</button>
       </div>
+    </section>
 
+    <section id="analytics" class="analytics-section app-section" data-section="analytics">
+      <div class="analytics-section-header">
+        <div>
+          <p class="analytics-section-kicker">Centre d'analyse</p>
+          <h2 class="section-title analytics-section-title">Analytics avancées</h2>
+        </div>
+        <p class="section-sub analytics-section-sub">Une vue plus complète pour suivre l'activité, le niveau de risque et la pression communautaire.</p>
+      </div>
       <section class="live-dashboard" id="liveDashboard">
         <div class="live-dashboard-header">
           <div>
@@ -298,16 +304,6 @@
           </div>
         </div>
       </section>
-    </section>
-
-    <section id="analytics" class="analytics-section">
-      <div class="analytics-section-header">
-        <div>
-          <p class="analytics-section-kicker">Centre d'analyse</p>
-          <h2 class="section-title analytics-section-title">Analytics avancées</h2>
-        </div>
-        <p class="section-sub analytics-section-sub">Une vue plus complète pour suivre l'activité, le niveau de risque et la pression communautaire.</p>
-      </div>
       <div class="analytics-overview-grid">
         <div class="analytics-overview-card">
           <span class="overview-card-label">Pic de risque</span>
@@ -351,7 +347,7 @@
       </div>
     </section>
 
-    <section id="workspace" class="workspace-section">
+    <section id="workspace" class="workspace-section app-section" data-section="workspace">
       <div class="workspace-header">
         <div>
           <p class="workspace-kicker">Workspace analyste</p>

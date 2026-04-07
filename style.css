@@ -137,6 +137,14 @@ main, header, footer, section {
   text-align: center;
 }
 
+.app-section {
+  display: none;
+}
+
+.app-section.is-active {
+  display: block;
+}
+
 .hero-badge {
   display: inline-flex;
   align-items: center;
@@ -188,6 +196,36 @@ main, header, footer, section {
   max-width: 600px;
   margin: 0 auto 40px;
   line-height: 1.7;
+}
+
+.hero-mini-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0 auto 26px;
+}
+
+.hero-mini-card {
+  background: rgba(255,255,255,0.03);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 16px;
+  text-align: left;
+}
+
+.hero-mini-label {
+  display: block;
+  color: var(--muted);
+  font-size: 0.76rem;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.hero-mini-value {
+  display: block;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
 
 .scanner-box {
@@ -309,38 +347,12 @@ main, header, footer, section {
   padding: 0 8px;
 }
 
-.stats-row {
+.scanner-actions-bar {
+  margin-top: 24px;
   display: flex;
-  align-items: center;
   justify-content: center;
-  gap: 24px;
-  margin-bottom: 30px;
-}
-
-.stat {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 2px;
-}
-
-.stat-num {
-  font-size: 1.5rem;
-  font-weight: 800;
-  color: var(--primary);
-  line-height: 1;
-}
-
-.stat-label {
-  font-size: 0.75rem;
-  color: var(--muted);
-  font-weight: 500;
-}
-
-.stat-sep {
-  width: 1px;
-  height: 32px;
-  background: var(--border);
+  gap: 12px;
+  flex-wrap: wrap;
 }
 
 .live-dashboard {
@@ -652,7 +664,7 @@ main, header, footer, section {
 .workspace-section {
   max-width: 1100px;
   margin: 0 auto 80px;
-  padding: 0 24px;
+  padding: 56px 24px 0;
 }
 
 .analytics-section-header,
@@ -1000,6 +1012,7 @@ main, header, footer, section {
 }
 
 @media (max-width: 900px) {
+  .hero-mini-grid,
   .analytics-grid {
     grid-template-columns: 1fr;
   }
@@ -2616,7 +2629,7 @@ main, header, footer, section {
   .result-footer { padding: 16px 20px; gap: 8px; }
   .loading-card { padding: 36px 28px; min-width: 280px; }
   .side-panel { width: 100vw; }
-  .stats-row { gap: 12px; flex-wrap: wrap; }
+  .hero-mini-grid { gap: 10px; }
   .scan-tabs { gap: 6px; }
   .scan-tab { padding: 8px 14px; font-size: 0.8rem; }
   .vt-result-wrap { margin: 0 20px; }

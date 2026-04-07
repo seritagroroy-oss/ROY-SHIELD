@@ -7,6 +7,9 @@ const multiResultSection = document.getElementById("multiResultSection");
 const loadingOverlay = document.getElementById("loadingOverlay");
 const micUrlBtn = document.getElementById("micUrlBtn");
 const micTextBtn = document.getElementById("micTextBtn");
+const appSections = Array.from(document.querySelectorAll(".app-section"));
+const sectionNavLinks = Array.from(document.querySelectorAll(".nav-link[data-section]"));
+const sectionSwitchButtons = Array.from(document.querySelectorAll("[data-section-switch]"));
 
 let currentResult = null;
 let currentRawUrl = "";
@@ -70,9 +73,7 @@ document.getElementById("historyToggleBtn").addEventListener("click", openHistor
 document.getElementById("vtSettingsBtn").addEventListener("click", openVTModal);
 document.getElementById("exportBtn").addEventListener("click", exportReport);
 document.getElementById("reportBtn").addEventListener("click", openReportModal);
-document.getElementById("workspaceBtn").addEventListener("click", () => {
-  document.getElementById("workspace").scrollIntoView({ behavior: "smooth", block: "start" });
-});
+document.getElementById("workspaceBtn").addEventListener("click", () => showAppSection("workspace"));
 document.getElementById("openAuthModalBtn").addEventListener("click", openAuthModal);
 document.getElementById("workspaceRefreshBtn").addEventListener("click", refreshWorkspace);
 document.getElementById("workspaceLogoutBtn").addEventListener("click", logoutWorkspace);
@@ -80,6 +81,15 @@ document.getElementById("shareCurrentReportBtn").addEventListener("click", share
 document.getElementById("loadAdminReportsBtn").addEventListener("click", loadAdminReports);
 if (micUrlBtn) micUrlBtn.addEventListener("click", () => toggleSpeechInput("url"));
 if (micTextBtn) micTextBtn.addEventListener("click", () => toggleSpeechInput("text"));
+sectionNavLinks.forEach(link => {
+  link.addEventListener("click", event => {
+    event.preventDefault();
+    showAppSection(link.dataset.section);
+  });
+});
+sectionSwitchButtons.forEach(button => {
+  button.addEventListener("click", () => showAppSection(button.dataset.sectionSwitch));
+});
 ["dashboardDaysFilter", "dashboardLevelFilter", "dashboardReportTypeFilter"].forEach(id => {
   const element = document.getElementById(id);
   if (element) element.addEventListener("change", refreshLiveDashboard);
@@ -108,6 +118,16 @@ function switchTab(tab) {
   document.getElementById("panelUrl").classList.toggle("hidden", tab !== "url");
   document.getElementById("panelText").classList.toggle("hidden", tab !== "text");
   updateMicButtons();
+}
+
+function showAppSection(section) {
+  appSections.forEach(item => {
+    item.classList.toggle("is-active", item.dataset.section === section);
+  });
+  sectionNavLinks.forEach(link => {
+    link.classList.toggle("active", link.dataset.section === section);
+  });
+  window.scrollTo({ top: 0, behavior: "smooth" });
 }
 
 // ─── Text mode ─────────────────────────────────────────────────────────────────
