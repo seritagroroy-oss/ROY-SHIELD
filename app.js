@@ -23,7 +23,7 @@ const ADMIN_TOKEN_KEY = "royshield_admin_token";
 
 // URL du backend Python — à remplacer par l'URL Render après déploiement
 const BACKEND_URL =
-  window.ROY_SHIELD_CONFIG?.backendUrl ||
+  window.ROY_SHIELD_CONFIG?.backendUrl ??
   "http://127.0.0.1:8000";
 
 const AUTH_TOKEN_KEY = "royshield_auth_token";

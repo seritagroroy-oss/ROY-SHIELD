@@ -28,6 +28,7 @@ ROY SHIELD is a phishing and scam detection platform focused on fast URL analysi
 - Backend: FastAPI entrypoint in [backend.py](/e:/SITE/backend.py)
 - Backend modules: [backend_app/app.py](/e:/SITE/backend_app/app.py), [backend_app/routes/scan.py](/e:/SITE/backend_app/routes/scan.py), [backend_app/services/scan_service.py](/e:/SITE/backend_app/services/scan_service.py)
 - Config: [config.js](/e:/SITE/config.js) and [.env.example](/e:/SITE/.env.example)
+- Vercel config: [vercel.json](/e:/SITE/vercel.json) and [api/index.py](/e:/SITE/api/index.py)
 - Tests: [tests/test_backend.py](/e:/SITE/tests/test_backend.py)
 - CI: [.github/workflows/ci.yml](/e:/SITE/.github/workflows/ci.yml)
 
@@ -90,6 +91,30 @@ window.ROY_SHIELD_CONFIG = {
 ```
 
 Then open [index.html](/e:/SITE/index.html) in your browser.
+
+## Deploy on Vercel
+
+This repository now includes a Vercel-compatible Python entrypoint in [api/index.py](/e:/SITE/api/index.py) and route rewrites in [vercel.json](/e:/SITE/vercel.json).
+
+Recommended setup for Vercel:
+
+```bash
+vercel
+```
+
+Environment variables to configure in Vercel:
+
+- `ROY_SHIELD_ENV=production`
+- `ROY_SHIELD_ALLOWED_ORIGINS=*` or your domain
+- `ROY_SHIELD_ADMIN_TOKEN=<your-secret>`
+- `ROY_SHIELD_WEBHOOK_URL=<optional>`
+- `ROY_SHIELD_STORAGE_DIR=/tmp/roy_shield` or leave unset on Vercel
+
+Important note:
+
+- This Vercel setup uses local SQLite storage in `/tmp` when running on Vercel.
+- It works for demos and portfolio deployments, but storage remains ephemeral across serverless lifecycle events.
+- For a stronger production setup, migrate data persistence to a managed database.
 
 ## API
 

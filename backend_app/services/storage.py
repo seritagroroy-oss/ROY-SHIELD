@@ -7,9 +7,9 @@ import hashlib
 import hmac
 import secrets
 
+from backend_app.config import resolve_storage_dir
 
-BASE_DIR = Path(__file__).resolve().parents[2]
-LOGS_DIR = BASE_DIR / "logs"
+LOGS_DIR = resolve_storage_dir()
 DB_PATH = LOGS_DIR / "roy_shield.db"
 
 
